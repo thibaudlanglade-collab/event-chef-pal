@@ -53,7 +53,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             {/* Left: Text */}
-            <div className="flex flex-col gap-6 z-10">
+          <div className="flex flex-col gap-6 z-10">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium w-fit border border-primary/15">
                 <Sparkles className="h-4 w-4" />
                 Nouveau — Assistant opérationnel pour traiteurs
@@ -71,6 +71,15 @@ const Landing = () => {
                 CaterPilot centralise vos devis, événements, équipes et stocks en une seule interface.
                 Fini les fichiers Excel éparpillés et les oublis de dernière minute.
               </p>
+
+              {/* Spline Robot — visible on mobile between text and buttons */}
+              <div className="relative w-full h-[350px] lg:hidden">
+                {/* @ts-ignore */}
+                <spline-viewer
+                  url="https://prod.spline.design/XeeA0FbGSlUxmOGI/scene.splinecode"
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
 
               <div className="flex flex-col sm:flex-row items-start gap-4">
                 <Button
@@ -104,8 +113,8 @@ const Landing = () => {
               </div>
             </div>
 
-            {/* Right: Spline Robot */}
-            <div className="relative w-full h-[500px] lg:h-[600px]">
+            {/* Right: Spline Robot — desktop only */}
+            <div className="relative w-full h-[600px] hidden lg:block">
               {/* @ts-ignore */}
               <spline-viewer
                 url="https://prod.spline.design/XeeA0FbGSlUxmOGI/scene.splinecode"
