@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
+import { NotificationBell } from "./NotificationBell";
 
 const navItems = [
   { title: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
@@ -65,13 +66,16 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {/* Collapse toggle (desktop) */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="hidden lg:flex items-center justify-center p-3 border-t border-sidebar-border text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      {/* Notification bell + Collapse toggle */}
+      <div className="flex items-center justify-between px-3 py-2 border-t border-sidebar-border">
+        <NotificationBell />
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="hidden lg:flex items-center justify-center p-2 text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      </div>
     </>
   );
 

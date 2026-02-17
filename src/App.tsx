@@ -17,6 +17,7 @@ import Stock from "./pages/Stock";
 import MailPage from "./pages/Mail";
 import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Confirm from "./pages/Confirm";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/stock" element={<ProtectedLayout><Stock /></ProtectedLayout>} />
             <Route path="/mail" element={<ProtectedLayout><MailPage /></ProtectedLayout>} />
             <Route path="/settings" element={<ProtectedLayout><SettingsPage /></ProtectedLayout>} />
+            <Route path="/confirm/:sessionId" element={<Confirm />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
