@@ -8,7 +8,6 @@ import {
   Package,
   ArrowRight,
   CheckCircle2,
-  Clock,
   TrendingUp,
   Sparkles,
   Star,
@@ -16,7 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import heroDashboard from "@/assets/hero-dashboard.png";
+// hero dashboard image removed — now using Spline 3D
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -49,93 +48,61 @@ const Landing = () => {
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-4 relative overflow-hidden">
-        {/* Gradient orbs */}
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
-        <div className="absolute top-40 right-1/4 w-80 h-80 bg-[hsl(263,70%,58%)]/6 rounded-full blur-3xl" />
+      {/* Spline 3D Hero */}
+      <section className="pt-16 relative overflow-hidden" style={{ height: '100vh', minHeight: '600px' }}>
+        <div className="absolute inset-0">
+          {/* @ts-ignore */}
+          <spline-viewer
+            url="https://prod.spline.design/tRceYZBNj5FySNUF/scene.splinecode"
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
 
-        <div className="max-w-7xl mx-auto text-center relative">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 text-primary text-sm font-medium mb-6 border border-primary/15">
-            <Sparkles className="h-4 w-4" />
-            Nouveau — Assistant opérationnel pour traiteurs
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight max-w-4xl mx-auto">
-            Gérez vos événements,{" "}
-            <span className="bg-gradient-to-r from-primary to-[hsl(263,70%,58%)] bg-clip-text text-transparent">
-              simplifiez
-            </span>{" "}
-            votre quotidien
-          </h1>
-
-          <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            CaterPilot centralise vos devis, événements, équipes et stocks en une seule interface.
-            Fini les fichiers Excel éparpillés et les oublis de dernière minute.
-          </p>
-
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              variant="accent"
-              size="lg"
-              onClick={() => navigate("/register")}
-              className="gap-2 text-base px-8 py-6"
-            >
-              Essayer gratuitement <ArrowRight className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => {
-                document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="gap-2 text-base px-8 py-6"
-            >
-              Voir les fonctionnalités
-            </Button>
-          </div>
-
-          {/* Dashboard preview */}
-          <div className="mt-16 relative max-w-5xl mx-auto">
-            <div className="rounded-2xl overflow-hidden shadow-card border border-border/50 bg-card">
-              <img
-                src={heroDashboard}
-                alt="Aperçu du tableau de bord CaterPilot"
-                className="w-full h-auto"
-                loading="lazy"
-              />
+        {/* Content overlay */}
+        <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 pointer-events-none">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background/80 backdrop-blur-sm text-primary text-sm font-medium mb-6 border border-primary/15 pointer-events-auto">
+              <Sparkles className="h-4 w-4" />
+              Nouveau — Assistant opérationnel pour traiteurs
             </div>
-            {/* Floating cards */}
-            <div className="absolute -left-4 top-1/3 hidden lg:block animate-fade-in" style={{ animationDelay: "300ms" }}>
-              <Card className="shadow-card-hover border-primary/10 p-4 bg-card/95 backdrop-blur-sm rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-status-confirmed/12 flex items-center justify-center">
-                    <CheckCircle2 className="h-5 w-5 text-status-confirmed" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Événement confirmé</p>
-                    <p className="text-sm font-semibold">Mariage Dupont</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-            <div className="absolute -right-4 top-1/2 hidden lg:block animate-fade-in" style={{ animationDelay: "500ms" }}>
-              <Card className="shadow-card-hover border-primary/10 p-4 bg-card/95 backdrop-blur-sm rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/12 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Revenu semaine</p>
-                    <p className="text-sm font-semibold">9 450 €</p>
-                  </div>
-                </div>
-              </Card>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight drop-shadow-lg">
+              Gérez vos événements,{" "}
+              <span className="bg-gradient-to-r from-primary to-[hsl(263,70%,58%)] bg-clip-text text-transparent">
+                simplifiez
+              </span>{" "}
+              votre quotidien
+            </h1>
+
+            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed drop-shadow-sm bg-background/60 backdrop-blur-sm rounded-xl px-4 py-2">
+              CaterPilot centralise vos devis, événements, équipes et stocks en une seule interface.
+              Fini les fichiers Excel éparpillés et les oublis de dernière minute.
+            </p>
+
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 pointer-events-auto">
+              <Button
+                variant="accent"
+                size="lg"
+                onClick={() => navigate("/register")}
+                className="gap-2 text-base px-8 py-6"
+              >
+                Essayer gratuitement <ArrowRight className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => {
+                  document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="gap-2 text-base px-8 py-6 bg-background/80 backdrop-blur-sm"
+              >
+                Voir les fonctionnalités
+              </Button>
             </div>
           </div>
 
           {/* Social proof */}
-          <div className="mt-16 flex flex-col items-center gap-4">
+          <div className="mt-12 flex flex-col items-center gap-4 bg-background/70 backdrop-blur-sm rounded-2xl px-6 py-4">
             <p className="text-sm text-muted-foreground">Déjà adopté par des traiteurs indépendants partout en France</p>
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
