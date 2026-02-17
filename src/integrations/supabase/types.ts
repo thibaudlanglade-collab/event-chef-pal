@@ -44,6 +44,135 @@ export type Database = {
         }
         Relationships: []
       }
+      confirmation_requests: {
+        Row: {
+          created_at: string
+          id: string
+          responded_at: string | null
+          respondent_firstname: string | null
+          respondent_lastname: string | null
+          session_id: string
+          status: string
+          team_member_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          responded_at?: string | null
+          respondent_firstname?: string | null
+          respondent_lastname?: string | null
+          session_id: string
+          status?: string
+          team_member_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          responded_at?: string | null
+          respondent_firstname?: string | null
+          respondent_lastname?: string | null
+          session_id?: string
+          status?: string
+          team_member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confirmation_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "confirmation_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "confirmation_requests_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      confirmation_sessions: {
+        Row: {
+          created_at: string
+          event_id: string
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confirmation_sessions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conflicts: {
+        Row: {
+          detected_at: string
+          event_id_1: string
+          event_id_2: string
+          id: string
+          resolved: boolean
+          team_member_id: string
+        }
+        Insert: {
+          detected_at?: string
+          event_id_1: string
+          event_id_2: string
+          id?: string
+          resolved?: boolean
+          team_member_id: string
+        }
+        Update: {
+          detected_at?: string
+          event_id_1?: string
+          event_id_2?: string
+          id?: string
+          resolved?: boolean
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conflicts_event_id_1_fkey"
+            columns: ["event_id_1"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conflicts_event_id_2_fkey"
+            columns: ["event_id_2"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conflicts_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_staff: {
         Row: {
           confirmation_status: string
@@ -174,6 +303,36 @@ export type Database = {
           sender?: string | null
           status?: string
           subject?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          type: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          type?: string
           user_id?: string
         }
         Relationships: []
