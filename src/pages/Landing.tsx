@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ChefHat,
+  // ChefHat removed — using logo image
   CalendarDays,
   FileText,
   Users,
@@ -15,7 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-// hero dashboard image removed — now using Spline 3D
+import logo from "@/assets/logo.png";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -26,9 +26,7 @@ const Landing = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <ChefHat className="h-5 w-5 text-primary" />
-            </div>
+            <img src={logo} alt="CaterPilot" className="h-9 w-9 rounded-xl object-contain" />
             <span className="text-xl font-bold text-foreground">CaterPilot</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
@@ -408,9 +406,7 @@ const Landing = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <ChefHat className="h-4 w-4 text-primary" />
-                </div>
+                <img src={logo} alt="CaterPilot" className="h-8 w-8 rounded-lg object-contain" />
                 <span className="text-lg font-bold">CaterPilot</span>
               </div>
               <p className="text-sm text-muted-foreground">

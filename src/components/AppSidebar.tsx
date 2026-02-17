@@ -5,7 +5,7 @@ import {
   FileText,
   Users,
   Package,
-  ChefHat,
+  // ChefHat removed — using logo image
   Menu,
   X,
   Mail,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/logo.png";
 
 const navItems = [
   { title: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
@@ -33,9 +34,7 @@ export function AppSidebar() {
     <>
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-        <div className="h-9 w-9 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-          <ChefHat className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <img src={logo} alt="CaterPilot" className="h-9 w-9 rounded-xl object-contain shrink-0" />
         {!collapsed && (
           <span className="text-lg font-bold tracking-tight text-sidebar-foreground">
             CaterPilot
@@ -82,9 +81,7 @@ export function AppSidebar() {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 border-b border-primary/20 bg-gradient-to-r from-primary to-[hsl(263,70%,58%)]"
       >
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
-            <ChefHat className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src={logo} alt="CaterPilot" className="h-8 w-8 rounded-lg object-contain" />
           <span className="text-base font-bold text-sidebar-foreground">CaterPilot</span>
         </div>
         <button
