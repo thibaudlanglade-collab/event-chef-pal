@@ -14,7 +14,371 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      event_staff: {
+        Row: {
+          confirmation_status: string
+          created_at: string
+          event_id: string
+          id: string
+          role_assigned: string | null
+          team_member_id: string
+        }
+        Insert: {
+          confirmation_status?: string
+          created_at?: string
+          event_id: string
+          id?: string
+          role_assigned?: string | null
+          team_member_id: string
+        }
+        Update: {
+          confirmation_status?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          role_assigned?: string | null
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_staff_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_staff_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          date: string
+          end_date: string | null
+          guest_count: number | null
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          time: string | null
+          type: string
+          user_id: string
+          venue: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          date: string
+          end_date?: string | null
+          guest_count?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          time?: string | null
+          type?: string
+          user_id: string
+          venue?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          end_date?: string | null
+          guest_count?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
+          time?: string | null
+          type?: string
+          user_id?: string
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_queue: {
+        Row: {
+          auto_reply: string | null
+          body: string | null
+          category: string | null
+          created_at: string
+          id: string
+          sender: string | null
+          status: string
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_reply?: string | null
+          body?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          sender?: string | null
+          status?: string
+          subject?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_reply?: string | null
+          body?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          sender?: string | null
+          status?: string
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quotes: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          items: Json
+          notes: string | null
+          status: string
+          subtotal: number | null
+          total_ttc: number | null
+          tva_rate: number | null
+          user_id: string
+          validity_date: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          status?: string
+          subtotal?: number | null
+          total_ttc?: number | null
+          tva_rate?: number | null
+          user_id: string
+          validity_date?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          status?: string
+          subtotal?: number | null
+          total_ttc?: number | null
+          tva_rate?: number | null
+          user_id?: string
+          validity_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          current_qty: number | null
+          id: string
+          min_threshold: number | null
+          name: string
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          current_qty?: number | null
+          id?: string
+          min_threshold?: number | null
+          name: string
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          current_qty?: number | null
+          id?: string
+          min_threshold?: number | null
+          name?: string
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          id: string
+          movement_type: string
+          note: string | null
+          qty: number
+          stock_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          movement_type?: string
+          note?: string | null
+          qty: number
+          stock_item_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          movement_type?: string
+          note?: string | null
+          qty?: number
+          stock_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          hourly_rate: number | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          skills: string[] | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hourly_rate?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          skills?: string[] | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hourly_rate?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          skills?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_configs: {
+        Row: {
+          created_at: string
+          feature_name: string
+          id: string
+          is_active: boolean | null
+          user_id: string
+          webhook_url: string
+        }
+        Insert: {
+          created_at?: string
+          feature_name: string
+          id?: string
+          is_active?: boolean | null
+          user_id: string
+          webhook_url: string
+        }
+        Update: {
+          created_at?: string
+          feature_name?: string
+          id?: string
+          is_active?: boolean | null
+          user_id?: string
+          webhook_url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
