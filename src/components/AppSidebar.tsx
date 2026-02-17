@@ -78,13 +78,23 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-primary text-primary-foreground p-2 rounded-xl shadow-md"
+      {/* Mobile top bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 border-b border-sidebar-border"
+        style={{ background: "linear-gradient(90deg, hsl(240 47% 20%), hsl(240 42% 25%))" }}
       >
-        <Menu className="h-5 w-5" />
-      </button>
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+            <ChefHat className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <span className="text-base font-bold text-sidebar-foreground">CaterPilot</span>
+        </div>
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="text-sidebar-foreground/70 hover:text-sidebar-foreground p-1.5"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      </div>
 
       {/* Mobile overlay */}
       {mobileOpen && (
