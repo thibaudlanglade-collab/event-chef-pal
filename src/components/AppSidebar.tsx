@@ -106,7 +106,7 @@ export function AppSidebar() {
           "lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-sidebar flex flex-col transition-transform duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
-        style={{ background: "linear-gradient(180deg, hsl(240 47% 20%), hsl(240 42% 25%))" }}
+        style={{ background: "linear-gradient(180deg, hsl(239 84% 67%), hsl(263 70% 50%))" }}
       >
         <button
           onClick={() => setMobileOpen(false)}
@@ -123,7 +123,7 @@ export function AppSidebar() {
           "hidden lg:flex flex-col shrink-0 transition-all duration-200",
           collapsed ? "w-16" : "w-60"
         )}
-        style={{ background: "linear-gradient(180deg, hsl(240 47% 20%), hsl(240 42% 25%))" }}
+        style={{ background: "linear-gradient(180deg, hsl(239 84% 67%), hsl(263 70% 50%))" }}
       >
         {sidebarContent}
       </aside>
