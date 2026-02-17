@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChefHat, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -34,9 +35,7 @@ export default function Login() {
         style={{ background: "linear-gradient(135deg, hsl(239 84% 67%), hsl(263 70% 50%))" }}
       >
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <ChefHat className="h-6 w-6 text-white" />
-          </div>
+          <img src={logo} alt="CaterPilot" className="h-10 w-10 rounded-xl object-contain" />
           <span className="text-xl font-bold text-white">CaterPilot</span>
         </div>
 
@@ -56,9 +55,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <ChefHat className="h-6 w-6 text-primary" />
-            </div>
+            <img src={logo} alt="CaterPilot" className="h-10 w-10 rounded-xl object-contain" />
             <span className="text-xl font-bold">CaterPilot</span>
           </div>
 
