@@ -14,9 +14,15 @@ import Calendar from "./pages/Calendar";
 import Quotes from "./pages/Quotes";
 import Team from "./pages/Team";
 import Stock from "./pages/Stock";
+import MailPage from "./pages/Mail";
+import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const ProtectedLayout = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute><Layout>{children}</Layout></ProtectedRoute>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -29,56 +35,13 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/calendar"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Calendar />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/quotes"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Quotes />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/team"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Team />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/stock"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Stock />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+            <Route path="/calendar" element={<ProtectedLayout><Calendar /></ProtectedLayout>} />
+            <Route path="/quotes" element={<ProtectedLayout><Quotes /></ProtectedLayout>} />
+            <Route path="/team" element={<ProtectedLayout><Team /></ProtectedLayout>} />
+            <Route path="/stock" element={<ProtectedLayout><Stock /></ProtectedLayout>} />
+            <Route path="/mail" element={<ProtectedLayout><MailPage /></ProtectedLayout>} />
+            <Route path="/settings" element={<ProtectedLayout><SettingsPage /></ProtectedLayout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
