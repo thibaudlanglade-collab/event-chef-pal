@@ -13,7 +13,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "Tableau de bord", href: "/", icon: LayoutDashboard },
+  { title: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
   { title: "Calendrier", href: "/calendar", icon: CalendarDays },
   { title: "Devis", href: "/quotes", icon: FileText },
   { title: "Équipe", href: "/team", icon: Users },
@@ -40,10 +40,7 @@ export function AppSidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
-          const isActive =
-            item.href === "/"
-              ? location.pathname === "/"
-              : location.pathname.startsWith(item.href);
+          const isActive = location.pathname.startsWith(item.href);
           return (
             <NavLink
               key={item.href}
