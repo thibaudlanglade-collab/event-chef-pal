@@ -49,66 +49,68 @@ const Landing = () => {
       </nav>
 
       {/* Spline 3D Hero */}
-      <section className="pt-16 relative overflow-hidden" style={{ height: '100vh', minHeight: '600px' }}>
-        <div className="absolute inset-0">
-          {/* @ts-ignore */}
-          <spline-viewer
-            url="https://prod.spline.design/tRceYZBNj5FySNUF/scene.splinecode"
-            style={{ width: '100%', height: '100%' }}
-          />
-        </div>
+      <section className="pt-24 pb-20 relative overflow-hidden min-h-screen flex items-center" style={{ background: 'hsl(var(--secondary) / 0.3)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            {/* Left: Text */}
+            <div className="flex flex-col gap-6 z-10">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium w-fit border border-primary/15">
+                <Sparkles className="h-4 w-4" />
+                Nouveau — Assistant opérationnel pour traiteurs
+              </div>
 
-        {/* Content overlay */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 pointer-events-none">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background/80 backdrop-blur-sm text-primary text-sm font-medium mb-6 border border-primary/15 pointer-events-auto">
-              <Sparkles className="h-4 w-4" />
-              Nouveau — Assistant opérationnel pour traiteurs
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight">
+                Gérez vos événements,{" "}
+                <span className="bg-gradient-to-r from-primary to-[hsl(263,70%,58%)] bg-clip-text text-transparent">
+                  simplifiez
+                </span>{" "}
+                votre quotidien
+              </h1>
+
+              <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
+                CaterPilot centralise vos devis, événements, équipes et stocks en une seule interface.
+                Fini les fichiers Excel éparpillés et les oublis de dernière minute.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-start gap-4">
+                <Button
+                  variant="accent"
+                  size="lg"
+                  onClick={() => navigate("/register")}
+                  className="gap-2 text-base px-8 py-6"
+                >
+                  Essayer gratuitement <ArrowRight className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="gap-2 text-base px-8 py-6"
+                >
+                  Voir les fonctionnalités
+                </Button>
+              </div>
+
+              {/* Social proof */}
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">4.9/5 — 120+ utilisateurs</span>
+              </div>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight drop-shadow-lg">
-              Gérez vos événements,{" "}
-              <span className="bg-gradient-to-r from-primary to-[hsl(263,70%,58%)] bg-clip-text text-transparent">
-                simplifiez
-              </span>{" "}
-              votre quotidien
-            </h1>
-
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed drop-shadow-sm bg-background/60 backdrop-blur-sm rounded-xl px-4 py-2">
-              CaterPilot centralise vos devis, événements, équipes et stocks en une seule interface.
-              Fini les fichiers Excel éparpillés et les oublis de dernière minute.
-            </p>
-
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 pointer-events-auto">
-              <Button
-                variant="accent"
-                size="lg"
-                onClick={() => navigate("/register")}
-                className="gap-2 text-base px-8 py-6"
-              >
-                Essayer gratuitement <ArrowRight className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => {
-                  document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="gap-2 text-base px-8 py-6 bg-background/80 backdrop-blur-sm"
-              >
-                Voir les fonctionnalités
-              </Button>
-            </div>
-          </div>
-
-          {/* Social proof */}
-          <div className="mt-12 flex flex-col items-center gap-4 bg-background/70 backdrop-blur-sm rounded-2xl px-6 py-4">
-            <p className="text-sm text-muted-foreground">Déjà adopté par des traiteurs indépendants partout en France</p>
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-primary text-primary" />
-              ))}
-              <span className="ml-2 text-sm font-medium">4.9/5 — 120+ utilisateurs</span>
+            {/* Right: Spline Robot */}
+            <div className="relative w-full h-[500px] lg:h-[600px]">
+              {/* @ts-ignore */}
+              <spline-viewer
+                url="https://prod.spline.design/XeeA0FbGSlUxmOGI/scene.splinecode"
+                style={{ width: '100%', height: '100%' }}
+              />
             </div>
           </div>
         </div>
