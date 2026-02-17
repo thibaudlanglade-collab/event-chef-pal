@@ -79,8 +79,7 @@ export function AppSidebar() {
   return (
     <>
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 border-b border-sidebar-border"
-        style={{ background: "linear-gradient(90deg, hsl(240 47% 20%), hsl(240 42% 25%))" }}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 border-b border-primary/20 bg-gradient-to-r from-primary to-[hsl(263,70%,58%)]"
       >
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
