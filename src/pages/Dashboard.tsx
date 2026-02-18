@@ -78,6 +78,7 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">Bonjour 👋</h1>
+          <p className="text-muted-foreground text-sm">Vue d'ensemble de votre activité : événements du jour, alertes et chiffres clés.</p>
           <p className="text-muted-foreground mt-1">
             {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} — {todayEvents.length} événement{todayEvents.length > 1 ? "s" : ""} aujourd'hui
           </p>

@@ -54,7 +54,7 @@ const MyTeams = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Mes équipes</h1>
-          <p className="text-muted-foreground text-sm">Annuaire complet de vos collaborateurs</p>
+          <p className="text-muted-foreground text-sm">Annuaire de vos collaborateurs : filtrez par rôle, consultez les fiches et ajoutez de nouveaux membres.</p>
         </div>
         <Button variant="accent" className="gap-2" onClick={() => setShowAddModal(true)}>
           <Plus className="h-4 w-4" /> Ajouter un employé

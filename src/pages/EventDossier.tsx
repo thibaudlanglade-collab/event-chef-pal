@@ -114,6 +114,7 @@ const EventDossier = () => {
       {/* Toolbar */}
       <div className="no-print space-y-4">
         <h1 className="text-2xl font-bold">Dossier Événement</h1>
+        <p className="text-muted-foreground text-sm">Générez un résumé complet de votre événement. Basculez entre la vue Client (présentation élégante) et la vue Gérant (finances, logistique, staff). Modifiable et imprimable.</p>
         <div className="flex flex-wrap gap-3 items-center">
           <Select value={selectedEventId} onValueChange={(v) => { setSelectedEventId(v); setIsEditing(false); }}>
             <SelectTrigger className="w-72">
