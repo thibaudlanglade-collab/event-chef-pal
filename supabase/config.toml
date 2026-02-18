@@ -1,1 +1,13 @@
 project_id = "huyzpnapexomfdjzjdkz"
+
+[functions.analyze-email]
+verify_jwt = false
+
+[functions.fetch-unread-emails]
+verify_jwt = false
+
+[functions.send-email-response]
+verify_jwt = false
+
+[functions.refresh-email-tokens]
+verify_jwt = false
