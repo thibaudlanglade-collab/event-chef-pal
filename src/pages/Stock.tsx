@@ -49,7 +49,7 @@ const Stock = () => {
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div><h1 className="text-2xl font-bold">Stock</h1><p className="text-muted-foreground text-sm">Suivez votre inventaire et vos mouvements</p></div>
+        <div><h1 className="text-2xl font-bold">Stock</h1><p className="text-muted-foreground text-sm">Gérez votre inventaire matériel et alimentaire. Enregistrez les entrées/sorties et recevez des alertes quand un seuil est atteint.</p></div>
         <div className="flex gap-2">
           <Button variant="accent" className="gap-2" onClick={() => setShowMovement(true)}><Plus className="h-4 w-4" /> Mouvement</Button>
           <Button variant="outline" className="gap-2" onClick={() => setShowAddItem(true)}><Package className="h-4 w-4" /> Nouvel article</Button>

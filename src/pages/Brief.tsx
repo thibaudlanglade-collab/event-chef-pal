@@ -97,6 +97,7 @@ const Brief = () => {
       {/* Toolbar – hidden on print */}
       <div className="no-print space-y-4">
         <h1 className="text-2xl font-bold">Brief Maître d'Hôtel</h1>
+        <p className="text-muted-foreground text-sm">Créez une fiche terrain pour votre maître d'hôtel : allergies en jaune fluo, chronologie du service et checklist logistique. Tout est modifiable avant impression.</p>
 
         <div className="flex flex-wrap gap-3 items-center">
           <Select value={selectedEventId} onValueChange={setSelectedEventId}>

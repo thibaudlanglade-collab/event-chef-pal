@@ -67,7 +67,7 @@ const Quotes = () => {
     <div className="p-4 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Devis Express</h1>
-        <p className="text-muted-foreground text-sm">Créez et envoyez un devis en quelques minutes</p>
+        <p className="text-muted-foreground text-sm">Créez un devis en quelques clics : ajoutez vos lignes, choisissez le client et l'événement, puis enregistrez ou partagez.</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

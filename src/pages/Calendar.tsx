@@ -70,7 +70,7 @@ const Calendar = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Calendrier</h1>
-          <p className="text-muted-foreground text-sm">Visualisez tous vos événements</p>
+          <p className="text-muted-foreground text-sm">Planifiez et visualisez tous vos événements sur un calendrier mensuel. Cliquez sur un jour pour créer un événement.</p>
         </div>
         <Button variant="accent" className="gap-2" onClick={() => setShowModal(true)}>
           <Plus className="h-4 w-4" /> Nouvel événement

@@ -135,8 +135,8 @@ const Team = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Équipe</h1>
-          <p className="text-muted-foreground text-sm">Gérez vos collaborateurs, constituez vos équipes et suivez les confirmations</p>
+          <h1 className="text-2xl font-bold">Annonces</h1>
+          <p className="text-muted-foreground text-sm">Sélectionnez un événement et des employés, puis générez un message WhatsApp avec lien de confirmation. Suivez les réponses en temps réel.</p>
         </div>
         <Button variant="accent" className="gap-2" onClick={() => setShowAddModal(true)}>
           <Plus className="h-4 w-4" /> Ajouter un employé

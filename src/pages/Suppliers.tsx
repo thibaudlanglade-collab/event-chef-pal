@@ -128,7 +128,10 @@ const Suppliers = () => {
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Comparaison Fournisseurs</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Comparaison Fournisseurs</h1>
+          <p className="text-muted-foreground text-sm">Importez les tarifs Excel de vos fournisseurs, créez des produits référence, et comparez les prix normalisés côte à côte. Le meilleur prix est mis en avant.</p>
+        </div>
         <div className="flex gap-2">
           <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
             <DialogTrigger asChild><Button variant="outline" className="gap-2"><Store className="h-4 w-4" /> Fournisseur</Button></DialogTrigger>

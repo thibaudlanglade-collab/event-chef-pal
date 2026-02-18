@@ -53,7 +53,7 @@ const MailPage = () => {
 
   return (
     <div className="p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
-      <div><h1 className="text-2xl font-bold">Triage des mails</h1><p className="text-muted-foreground text-sm">Gérez vos emails entrants et réponses automatiques</p></div>
+      <div><h1 className="text-2xl font-bold">Triage des mails</h1><p className="text-muted-foreground text-sm">Centralisez vos emails entrants via webhook. Triez-les par catégorie et suivez leur traitement en un coup d'œil.</p></div>
 
       {/* Webhook config */}
       <Card className="rounded-2xl">
