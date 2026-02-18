@@ -13,6 +13,7 @@ import {
   Scale,
   FileEdit,
   ChevronDown,
+  FolderOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ const navGroups: NavGroup[] = [
       { title: "Mails", href: "/mail", icon: Mail },
       { title: "Devis express", href: "/quotes", icon: FileText },
       { title: "CRM", href: "/crm", icon: ContactRound },
+      { title: "Dossier événement", href: "/event-dossier", icon: FolderOpen },
     ],
   },
   {
