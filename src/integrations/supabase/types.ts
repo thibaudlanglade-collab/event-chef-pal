@@ -307,6 +307,33 @@ export type Database = {
         }
         Relationships: []
       }
+      master_products: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          name: string
+          reference_unit: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          reference_unit?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          reference_unit?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -474,6 +501,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      supplier_products: {
+        Row: {
+          conversion_factor: number | null
+          current_price: number | null
+          external_ref: string | null
+          id: string
+          last_update: string | null
+          master_product_id: string | null
+          raw_label: string
+          raw_unit: string | null
+          supplier_id: string | null
+        }
+        Insert: {
+          conversion_factor?: number | null
+          current_price?: number | null
+          external_ref?: string | null
+          id?: string
+          last_update?: string | null
+          master_product_id?: string | null
+          raw_label: string
+          raw_unit?: string | null
+          supplier_id?: string | null
+        }
+        Update: {
+          conversion_factor?: number | null
+          current_price?: number | null
+          external_ref?: string | null
+          id?: string
+          last_update?: string | null
+          master_product_id?: string | null
+          raw_label?: string
+          raw_unit?: string | null
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_products_master_product_id_fkey"
+            columns: ["master_product_id"]
+            isOneToOne: false
+            referencedRelation: "master_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          created_at: string | null
+          delivery_info: string | null
+          franco_threshold: number | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_info?: string | null
+          franco_threshold?: number | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          delivery_info?: string | null
+          franco_threshold?: number | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       team_members: {
         Row: {
