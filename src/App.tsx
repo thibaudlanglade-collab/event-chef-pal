@@ -20,6 +20,7 @@ import SettingsPage from "./pages/Settings";
 import CRM from "./pages/CRM";
 import Suppliers from "./pages/Suppliers";
 import Brief from "./pages/Brief";
+import EventDossier from "./pages/EventDossier";
 import NotFound from "./pages/NotFound";
 import Confirm from "./pages/Confirm";
 
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/crm" element={<ProtectedLayout><CRM /></ProtectedLayout>} />
             <Route path="/suppliers" element={<ProtectedLayout><Suppliers /></ProtectedLayout>} />
             <Route path="/brief" element={<ProtectedLayout><Brief /></ProtectedLayout>} />
+            <Route path="/event-dossier" element={<ProtectedLayout><EventDossier /></ProtectedLayout>} />
             <Route path="/confirm/:sessionId" element={<Confirm />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
