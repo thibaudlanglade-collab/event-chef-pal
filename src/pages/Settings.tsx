@@ -73,7 +73,9 @@ const SettingsPage = () => {
       return;
     }
 
-    const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+    const redirectUri = provider === "google"
+      ? "https://event-chef-pal.lovable.app/auth/callback/google"
+      : `${window.location.origin}/auth/callback/${provider}`;
     const scopes = provider === "google"
       ? "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.modify"
       : "Mail.Read Mail.Send offline_access";
