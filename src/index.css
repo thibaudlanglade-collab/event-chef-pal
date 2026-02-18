@@ -67,3 +67,24 @@
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .printable-area {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    min-height: auto !important;
+  }
+  aside, header, nav {
+    display: none !important;
+  }
+}

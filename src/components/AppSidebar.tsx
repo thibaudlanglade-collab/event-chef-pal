@@ -46,7 +46,7 @@ const navGroups: NavGroup[] = [
     label: "Organisation",
     items: [
       { title: "Comparaison Fournisseurs", href: "/suppliers", icon: Scale },
-      { title: "Brief créateur", href: "/brief", icon: FileEdit },
+      { title: "Brief Maître d'Hôtel", href: "/brief", icon: FileEdit },
     ],
   },
 ];
