@@ -12,10 +12,14 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
 import Quotes from "./pages/Quotes";
-import Team from "./pages/Team";
+import MyTeams from "./pages/MyTeams";
+import Announcements from "./pages/Announcements";
 import Stock from "./pages/Stock";
 import MailPage from "./pages/Mail";
 import SettingsPage from "./pages/Settings";
+import CRM from "./pages/CRM";
+import Suppliers from "./pages/Suppliers";
+import Brief from "./pages/Brief";
 import NotFound from "./pages/NotFound";
 import Confirm from "./pages/Confirm";
 
@@ -39,10 +43,14 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
             <Route path="/calendar" element={<ProtectedLayout><Calendar /></ProtectedLayout>} />
             <Route path="/quotes" element={<ProtectedLayout><Quotes /></ProtectedLayout>} />
-            <Route path="/team" element={<ProtectedLayout><Team /></ProtectedLayout>} />
+            <Route path="/my-teams" element={<ProtectedLayout><MyTeams /></ProtectedLayout>} />
+            <Route path="/announcements" element={<ProtectedLayout><Announcements /></ProtectedLayout>} />
             <Route path="/stock" element={<ProtectedLayout><Stock /></ProtectedLayout>} />
             <Route path="/mail" element={<ProtectedLayout><MailPage /></ProtectedLayout>} />
             <Route path="/settings" element={<ProtectedLayout><SettingsPage /></ProtectedLayout>} />
+            <Route path="/crm" element={<ProtectedLayout><CRM /></ProtectedLayout>} />
+            <Route path="/suppliers" element={<ProtectedLayout><Suppliers /></ProtectedLayout>} />
+            <Route path="/brief" element={<ProtectedLayout><Brief /></ProtectedLayout>} />
             <Route path="/confirm/:sessionId" element={<Confirm />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
