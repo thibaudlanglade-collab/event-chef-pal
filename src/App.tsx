@@ -16,6 +16,8 @@ import MyTeams from "./pages/MyTeams";
 import Announcements from "./pages/Announcements";
 import Stock from "./pages/Stock";
 import MailPage from "./pages/Mail";
+import EmailHistory from "./pages/EmailHistory";
+import ChecklistTemplates from "./pages/ChecklistTemplates";
 import SettingsPage from "./pages/Settings";
 import CRM from "./pages/CRM";
 import Suppliers from "./pages/Suppliers";
@@ -48,7 +50,9 @@ const App = () => (
             <Route path="/announcements" element={<ProtectedLayout><Announcements /></ProtectedLayout>} />
             <Route path="/stock" element={<ProtectedLayout><Stock /></ProtectedLayout>} />
             <Route path="/mail" element={<ProtectedLayout><MailPage /></ProtectedLayout>} />
+            <Route path="/emails/history" element={<ProtectedLayout><EmailHistory /></ProtectedLayout>} />
             <Route path="/settings" element={<ProtectedLayout><SettingsPage /></ProtectedLayout>} />
+            <Route path="/settings/checklist-templates" element={<ProtectedLayout><ChecklistTemplates /></ProtectedLayout>} />
             <Route path="/crm" element={<ProtectedLayout><CRM /></ProtectedLayout>} />
             <Route path="/suppliers" element={<ProtectedLayout><Suppliers /></ProtectedLayout>} />
             <Route path="/brief" element={<ProtectedLayout><Brief /></ProtectedLayout>} />

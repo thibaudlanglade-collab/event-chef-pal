@@ -1,120 +1,498 @@
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, CheckCircle, Clock, AlertCircle, Eye, Send, X, UserPlus } from "lucide-react";
-import { useMailQueue, useUpdateMailStatus, useWebhookConfigs, useUpsertWebhook } from "@/hooks/useSupabase";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Mail, Bot, Send, X, AlertTriangle, Trophy, ChevronDown, ChevronUp,
+  Flame, RefreshCcw, UserCheck, Calendar, Users, DollarSign, Sparkles, Info
+} from "lucide-react";
+import { useFetchUnreadEmails, useAnalyzeEmail, useSendEmailResponse, useEmailSettings } from "@/hooks/useEmails";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from "@/components/ui/dialog";
 
-const categoryColors: Record<string, string> = {
-  "Nouvelle demande": "bg-status-confirmed/12 text-status-confirmed",
-  "Modification": "bg-status-appointment/12 text-status-appointment",
-  "Annulation": "bg-destructive/12 text-destructive",
-  "Question": "bg-muted text-muted-foreground",
-  "Autre": "bg-status-quote-sent/12 text-status-quote-sent",
+const categoryLabels: Record<string, string> = {
+  new_lead: "Nouvelle demande",
+  modification: "Modification",
+  cancellation: "Annulation",
+  question: "Question",
 };
 
-const statusIcons: Record<string, React.ReactNode> = {
-  pending: <Clock className="h-3.5 w-3.5 text-status-quote-sent" />,
-  sent: <Send className="h-3.5 w-3.5 text-status-confirmed" />,
-  treated: <CheckCircle className="h-3.5 w-3.5 text-status-completed" />,
+const categoryColors: Record<string, string> = {
+  new_lead: "bg-status-confirmed/12 text-status-confirmed",
+  modification: "bg-status-appointment/12 text-status-appointment",
+  cancellation: "bg-destructive/12 text-destructive",
+  question: "bg-muted text-muted-foreground",
+};
+
+const eventTypeLabels: Record<string, string> = {
+  wedding: "Mariage",
+  birthday: "Anniversaire",
+  corporate: "Entreprise",
+  private: "Privé",
+  other: "Autre",
+};
+
+type EmailData = {
+  id: string;
+  sender_email: string;
+  sender_name: string;
+  subject: string;
+  body: string;
+  received_at: string;
+  analysis?: any;
+};
+
+type GroupedEmails = {
+  sender_email: string;
+  sender_name: string;
+  emails: EmailData[];
+  latest_subject: string;
+  latest_received: string;
 };
 
 const MailPage = () => {
-  const { data: mails, isLoading } = useMailQueue();
-  const { data: webhooks } = useWebhookConfigs();
-  const updateStatus = useUpdateMailStatus();
-  const upsertWebhook = useUpsertWebhook();
+  const { data: emailData, isLoading, refetch } = useFetchUnreadEmails();
+  const { data: emailSettings } = useEmailSettings();
+  const analyzeEmail = useAnalyzeEmail();
+  const sendResponse = useSendEmailResponse();
+  const navigate = useNavigate();
 
-  const mailWebhook = webhooks?.find((w) => w.feature_name === "mail_triage");
-  const [webhookUrl, setWebhookUrl] = useState(mailWebhook?.webhook_url || "");
-  const [selectedMail, setSelectedMail] = useState<string | null>(null);
+  const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [responses, setResponses] = useState<Record<string, string>>({});
+  const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
+  const [localAnalysis, setLocalAnalysis] = useState<Record<string, any>>({});
+  const [showBanner, setShowBanner] = useState(() => localStorage.getItem("email_banner_dismissed") !== "true");
+  const [postSendModal, setPostSendModal] = useState<any | null>(null);
 
-  const selectedMailData = mails?.find((m) => m.id === selectedMail);
+  const emails = emailData?.emails || [];
+  const isConnected = emailData?.connected || false;
 
-  const testConnection = async () => {
-    if (!webhookUrl) return;
+  // Group emails by sender
+  const groupedEmails = useMemo(() => {
+    const groups: Record<string, GroupedEmails> = {};
+    for (const email of emails) {
+      const key = email.sender_email;
+      if (!groups[key]) {
+        groups[key] = {
+          sender_email: email.sender_email,
+          sender_name: email.sender_name,
+          emails: [],
+          latest_subject: email.subject,
+          latest_received: email.received_at,
+        };
+      }
+      groups[key].emails.push(email);
+      if (new Date(email.received_at) > new Date(groups[key].latest_received)) {
+        groups[key].latest_subject = email.subject;
+        groups[key].latest_received = email.received_at;
+      }
+    }
+    return Object.values(groups).sort(
+      (a, b) => new Date(b.latest_received).getTime() - new Date(a.latest_received).getTime()
+    );
+  }, [emails]);
+
+  // Auto-analyze if triage is ON
+  useEffect(() => {
+    if (emailSettings?.auto_triage_enabled && emails.length > 0) {
+      for (const email of emails) {
+        if (!email.analysis && !analyzingIds.has(email.id) && !localAnalysis[email.id]) {
+          handleAnalyze(email);
+        }
+      }
+    }
+  }, [emailSettings?.auto_triage_enabled, emails]);
+
+  const handleAnalyze = async (email: EmailData) => {
+    setAnalyzingIds((prev) => new Set(prev).add(email.id));
     try {
-      const res = await fetch(webhookUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ test: true }) });
-      if (res.ok) toast.success("✅ Connexion réussie");
-      else toast.error("❌ Erreur de connexion");
-    } catch { toast.error("❌ Impossible de joindre le webhook"); }
+      const result = await analyzeEmail.mutateAsync({
+        email_id: email.id,
+        sender_email: email.sender_email,
+        sender_name: email.sender_name,
+        subject: email.subject,
+        body: email.body,
+        received_at: email.received_at,
+      });
+      setLocalAnalysis((prev) => ({ ...prev, [email.id]: result }));
+      if (result.suggested_response) {
+        setResponses((prev) => ({ ...prev, [email.id]: result.suggested_response }));
+      }
+      setExpandedEmail(email.id);
+    } finally {
+      setAnalyzingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(email.id);
+        return next;
+      });
+    }
   };
 
-  const saveWebhook = () => {
-    upsertWebhook.mutate({ feature_name: "mail_triage", webhook_url: webhookUrl, is_active: true });
+  const handleSend = async (email: EmailData) => {
+    const responseText = responses[email.id];
+    if (!responseText?.trim()) {
+      toast.error("La réponse ne peut pas être vide");
+      return;
+    }
+    await sendResponse.mutateAsync({
+      email_provider_id: email.id,
+      reply_to_email: email.sender_email,
+      subject: email.subject,
+      body: responseText,
+      original_message_id: email.id,
+    });
+
+    const analysis = getAnalysis(email);
+    if (analysis?.category === "new_lead") {
+      setPostSendModal({
+        sender_name: email.sender_name,
+        sender_email: email.sender_email,
+        analysis,
+      });
+    }
+    setExpandedEmail(null);
+  };
+
+  const getAnalysis = (email: EmailData) => localAnalysis[email.id] || email.analysis;
+
+  const dismissBanner = () => {
+    setShowBanner(false);
+    localStorage.setItem("email_banner_dismissed", "true");
+  };
+
+  const timeAgo = (date: string) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `il y a ${mins} min`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `il y a ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `il y a ${days}j`;
   };
 
   if (isLoading) return <div className="p-8"><Skeleton className="h-96 w-full" /></div>;
 
   return (
-    <div className="p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
-      <div><h1 className="text-2xl font-bold">Triage des mails</h1><p className="text-muted-foreground text-sm">Centralisez vos emails entrants via webhook. Triez-les par catégorie et suivez leur traitement en un coup d'œil.</p></div>
-
-      {/* Webhook config */}
-      <Card className="rounded-2xl">
-        <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> Connexion mail (n8n)</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://mon-n8n.com/webhook/mail-triage" className="flex-1" />
-            <Button variant="outline" size="sm" onClick={testConnection}>Tester</Button>
-            <Button variant="accent" size="sm" onClick={saveWebhook}>Sauvegarder</Button>
-          </div>
-          {mailWebhook && <p className="text-xs text-muted-foreground">Statut : {mailWebhook.is_active ? <span className="text-status-confirmed font-medium">Actif</span> : <span className="text-destructive font-medium">Inactif</span>}</p>}
-        </CardContent>
-      </Card>
-
-      {/* Mail queue */}
-      <Card className="rounded-2xl">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="border-b bg-secondary/50"><th className="text-left py-3 px-4 font-medium">Date</th><th className="text-left py-3 px-4 font-medium">Expéditeur</th><th className="text-left py-3 px-4 font-medium">Objet</th><th className="text-center py-3 px-4 font-medium">Catégorie</th><th className="text-center py-3 px-4 font-medium">Statut</th><th className="text-right py-3 px-4 font-medium">Actions</th></tr></thead>
-              <tbody>
-                {(!mails || mails.length === 0) ? <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Aucun mail en file d'attente. Les mails apparaîtront ici quand n8n enverra des données.</td></tr> : mails.map((mail) => (
-                  <tr key={mail.id} className="border-b last:border-0 hover:bg-primary/3 transition-colors">
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(mail.created_at).toLocaleDateString("fr-FR")}</td>
-                    <td className="py-3 px-4 font-medium">{mail.sender || "—"}</td>
-                    <td className="py-3 px-4">{mail.subject || "—"}</td>
-                    <td className="py-3 px-4 text-center"><span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", categoryColors[mail.category || "Autre"] || categoryColors["Autre"])}>{mail.category || "Non classé"}</span></td>
-                    <td className="py-3 px-4 text-center"><div className="flex items-center justify-center gap-1">{statusIcons[mail.status] || statusIcons.pending}<span className="text-xs">{mail.status === "pending" ? "En attente" : mail.status === "sent" ? "Réponse envoyée" : "Traité"}</span></div></td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedMail(mail.id)}><Eye className="h-3 w-3 mr-1" /> Voir</Button>
-                        {mail.status === "pending" && <Button variant="ghost" size="sm" className="h-7 text-xs text-status-confirmed" onClick={() => updateStatus.mutate({ id: mail.id, status: "sent" })}><Send className="h-3 w-3 mr-1" /> Valider</Button>}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Mail detail drawer */}
-      {selectedMailData && (
-        <div className="fixed inset-0 bg-foreground/50 z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setSelectedMail(null)}>
-          <Card className="w-full max-w-lg animate-fade-in rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-lg">Détail du mail</CardTitle><Button variant="ghost" size="icon" onClick={() => setSelectedMail(null)}><X className="h-4 w-4" /></Button></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1"><p className="text-xs text-muted-foreground">De : {selectedMailData.sender}</p><p className="text-xs text-muted-foreground">Objet : {selectedMailData.subject}</p></div>
-              <div className="bg-secondary rounded-xl p-4 text-sm whitespace-pre-wrap">{selectedMailData.body || "Pas de contenu"}</div>
-              {selectedMailData.auto_reply && <div><p className="text-xs font-medium text-muted-foreground mb-1">Réponse automatique proposée :</p><div className="bg-primary/5 border border-primary/15 rounded-xl p-4 text-sm whitespace-pre-wrap">{selectedMailData.auto_reply}</div></div>}
-              <div className="flex gap-2">
-                <Button variant="accent" className="flex-1" onClick={() => { updateStatus.mutate({ id: selectedMailData.id, status: "sent" }); setSelectedMail(null); }}><Send className="h-4 w-4 mr-2" /> Valider & envoyer</Button>
-                {selectedMailData.category === "Nouvelle demande" && <Button variant="outline"><UserPlus className="h-4 w-4 mr-2" /> Créer prospect</Button>}
-              </div>
-            </CardContent>
-          </Card>
+    <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">📧 Boîte de réception intelligente</h1>
+          <p className="text-muted-foreground text-sm">
+            Analysez vos emails avec l'IA, obtenez des réponses personnalisées et gérez vos prospects en un clic.
+          </p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+          <RefreshCcw className="h-4 w-4" /> Actualiser
+        </Button>
+      </div>
+
+      {/* Welcome banner */}
+      {showBanner && (
+        <Card className="rounded-2xl bg-primary/5 border-primary/20">
+          <CardContent className="p-4 relative">
+            <button onClick={dismissBanner} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div className="text-sm space-y-1">
+                <p className="font-semibold">💡 Bienvenue dans votre boîte de réception intelligente</p>
+                <p className="text-muted-foreground">
+                  1️⃣ Vos emails non lus apparaissent ici · 
+                  2️⃣ Cliquez sur "🤖 Analyser" pour activer l'assistant IA · 
+                  3️⃣ Modifiez la réponse suggérée si besoin · 
+                  4️⃣ Validez l'envoi en un clic
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* Connection status */}
+      {!isConnected && (
+        <Card className="rounded-2xl border-status-quote-sent/30 bg-status-quote-sent/5">
+          <CardContent className="p-6 text-center space-y-3">
+            <Mail className="h-10 w-10 mx-auto text-status-quote-sent" />
+            <p className="font-semibold">Aucune boîte mail connectée</p>
+            <p className="text-sm text-muted-foreground">Rendez-vous dans Paramètres pour connecter votre Gmail ou Outlook.</p>
+            <Button variant="accent" onClick={() => navigate("/settings")}>Connecter ma boîte mail</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {emailData?.error === "token_expired" && (
+        <Card className="rounded-2xl border-destructive/30 bg-destructive/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <p className="text-sm">Votre token a expiré. Reconnectez votre boîte mail dans les Paramètres.</p>
+            <Button variant="outline" size="sm" onClick={() => navigate("/settings")}>Paramètres</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Email list */}
+      {isConnected && emails.length === 0 && (
+        <Card className="rounded-2xl">
+          <CardContent className="p-8 text-center">
+            <Mail className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+            <p className="font-semibold">Aucun email non lu</p>
+            <p className="text-sm text-muted-foreground">Tous vos emails ont été traités. Bravo ! 🎉</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-3">
+        {groupedEmails.map((group) => {
+          const isGroupExpanded = expandedGroup === group.sender_email;
+          const isSingleEmail = group.emails.length === 1;
+
+          if (isSingleEmail) {
+            return <EmailCard key={group.emails[0].id} email={group.emails[0]} expandedEmail={expandedEmail} setExpandedEmail={setExpandedEmail} analyzingIds={analyzingIds} handleAnalyze={handleAnalyze} handleSend={handleSend} responses={responses} setResponses={setResponses} getAnalysis={getAnalysis} timeAgo={timeAgo} sendResponse={sendResponse} />;
+          }
+
+          return (
+            <Card key={group.sender_email} className="rounded-2xl overflow-hidden">
+              <button
+                onClick={() => setExpandedGroup(isGroupExpanded ? null : group.sender_email)}
+                className="w-full text-left p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    {group.sender_name?.[0]?.toUpperCase() || "?"}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{group.sender_name}</p>
+                    <p className="text-xs text-muted-foreground">{group.emails.length} messages · {group.latest_subject}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{timeAgo(group.latest_received)}</span>
+                  {isGroupExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </div>
+              </button>
+              {isGroupExpanded && (
+                <div className="border-t divide-y">
+                  {group.emails.map((email) => (
+                    <EmailCard key={email.id} email={email} expandedEmail={expandedEmail} setExpandedEmail={setExpandedEmail} analyzingIds={analyzingIds} handleAnalyze={handleAnalyze} handleSend={handleSend} responses={responses} setResponses={setResponses} getAnalysis={getAnalysis} timeAgo={timeAgo} sendResponse={sendResponse} nested />
+                  ))}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Post-send modal for new leads */}
+      <Dialog open={!!postSendModal} onOpenChange={() => setPostSendModal(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>✅ Réponse envoyée !</DialogTitle>
+            <DialogDescription>
+              {postSendModal?.sender_name} · {postSendModal?.sender_email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Voulez-vous créer un devis maintenant ?</p>
+            <div className="bg-muted rounded-xl p-3 text-sm space-y-1">
+              <p>→ Client : {postSendModal?.sender_name}</p>
+              <p>→ Type : {eventTypeLabels[postSendModal?.analysis?.extracted_info?.event_type] || "Autre"}</p>
+              <p>→ Couverts : {postSendModal?.analysis?.extracted_info?.guest_count || "Non précisé"}</p>
+              <p>→ Budget : {postSendModal?.analysis?.extracted_info?.budget ? `${postSendModal.analysis.extracted_info.budget}€` : "Non précisé"}</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPostSendModal(null)}>Plus tard</Button>
+            <Button
+              variant="accent"
+              onClick={() => {
+                const a = postSendModal?.analysis;
+                navigate(`/quotes?client_id=${a?.client_id || ""}&event_type=${a?.extracted_info?.event_type || ""}&guest_count=${a?.extracted_info?.guest_count || ""}&budget=${a?.extracted_info?.budget || ""}`);
+                setPostSendModal(null);
+              }}
+            >
+              Créer le devis →
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+function EmailCard({
+  email, expandedEmail, setExpandedEmail, analyzingIds, handleAnalyze, handleSend,
+  responses, setResponses, getAnalysis, timeAgo, sendResponse, nested = false,
+}: {
+  email: EmailData;
+  expandedEmail: string | null;
+  setExpandedEmail: (id: string | null) => void;
+  analyzingIds: Set<string>;
+  handleAnalyze: (e: EmailData) => void;
+  handleSend: (e: EmailData) => void;
+  responses: Record<string, string>;
+  setResponses: (fn: any) => void;
+  getAnalysis: (e: EmailData) => any;
+  timeAgo: (d: string) => string;
+  sendResponse: any;
+  nested?: boolean;
+}) {
+  const analysis = getAnalysis(email);
+  const isExpanded = expandedEmail === email.id;
+  const isAnalyzing = analyzingIds.has(email.id);
+
+  return (
+    <Card className={cn("rounded-2xl overflow-hidden transition-all", nested && "rounded-none shadow-none border-0")}>
+      {/* Urgent badge */}
+      {analysis?.is_urgent && (
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2">
+          <Flame className="h-4 w-4 text-destructive" />
+          <span className="text-xs font-bold text-destructive">EMAIL URGENT — Répondre rapidement</span>
+        </div>
+      )}
+
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {!nested && (
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                {email.sender_name?.[0]?.toUpperCase() || "?"}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="font-semibold text-sm truncate">{email.sender_name}</p>
+              <p className="text-xs text-muted-foreground truncate">{email.sender_email}</p>
+              <p className="text-sm mt-1 font-medium truncate">Objet : {email.subject}</p>
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(email.received_at)}</span>
+        </div>
+
+        <p className="text-sm text-muted-foreground line-clamp-2">"{email.body?.substring(0, 200)}..."</p>
+
+        {/* Analysis section */}
+        {isAnalyzing && (
+          <div className="space-y-2 animate-pulse">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        )}
+
+        {analysis && !isAnalyzing && (
+          <div className="space-y-3 pt-2 border-t">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", categoryColors[analysis.category] || "bg-muted text-muted-foreground")}>
+                📨 {categoryLabels[analysis.category] || analysis.category}
+              </span>
+              {analysis.is_urgent && <Badge variant="destructive" className="text-xs">🔥 Urgent</Badge>}
+              {analysis.is_recurring_client && <Badge variant="secondary" className="text-xs bg-status-confirmed/12 text-status-confirmed">🔄 Client récurrent</Badge>}
+            </div>
+
+            {/* Extracted info */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {analysis.extracted_info?.event_type && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{eventTypeLabels[analysis.extracted_info.event_type] || analysis.extracted_info.event_type}</span>
+                </div>
+              )}
+              {analysis.extracted_info?.guest_count && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{analysis.extracted_info.guest_count} couverts</span>
+                </div>
+              )}
+              {analysis.extracted_info?.budget && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{analysis.extracted_info.budget}€{analysis.extracted_info.budget_per_person ? ` (${analysis.extracted_info.budget_per_person}€/pers)` : ""}</span>
+                </div>
+              )}
+              {analysis.extracted_info?.date_period && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{analysis.extracted_info.date_period}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Calendar conflict */}
+            {analysis.calendar_check?.has_conflict && (
+              <div className="bg-status-quote-sent/10 border border-status-quote-sent/30 rounded-xl p-3">
+                <p className="text-xs font-bold text-status-quote-sent flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" /> CONFLIT DE PLANNING DÉTECTÉ
+                </p>
+                {analysis.calendar_check.conflicting_events?.map((ev: any, i: number) => (
+                  <p key={i} className="text-xs text-muted-foreground mt-1">→ {ev.name} ({ev.date}) - {ev.status}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Upsell suggestions */}
+            {analysis.upsell_suggestions?.length > 0 && (
+              <div className="bg-primary/5 rounded-xl p-3 space-y-1">
+                <p className="text-xs font-semibold flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-primary" /> Opportunités d'upsell</p>
+                {analysis.upsell_suggestions.map((s: any, i: number) => (
+                  <p key={i} className="text-xs text-muted-foreground">• {s.item} — {s.reason} {s.estimated_price && `(${s.estimated_price})`}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Editable response */}
+            {isExpanded && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold">✏️ Réponse suggérée :</p>
+                <Textarea
+                  value={responses[email.id] || analysis.suggested_response || ""}
+                  onChange={(e) => setResponses((prev: any) => ({ ...prev, [email.id]: e.target.value }))}
+                  className="min-h-[200px] resize-y text-sm"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="accent"
+                    className="flex-1 gap-2"
+                    onClick={() => handleSend(email)}
+                    disabled={sendResponse.isPending}
+                  >
+                    <Send className="h-4 w-4" /> Valider et envoyer
+                  </Button>
+                  <Button variant="outline" onClick={() => setExpandedEmail(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!isExpanded && analysis && (
+              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => {
+                if (!responses[email.id] && analysis.suggested_response) {
+                  setResponses((prev: any) => ({ ...prev, [email.id]: analysis.suggested_response }));
+                }
+                setExpandedEmail(email.id);
+              }}>
+                <Send className="h-3.5 w-3.5" /> Voir la réponse suggérée
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Analyze button */}
+        {!analysis && !isAnalyzing && (
+          <Button variant="accent" size="sm" className="gap-2" onClick={() => handleAnalyze(email)}>
+            <Bot className="h-4 w-4" /> Analyser avec l'IA
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default MailPage;

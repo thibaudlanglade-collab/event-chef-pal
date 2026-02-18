@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      checklist_templates: {
+        Row: {
+          created_at: string | null
+          event_type: string | null
+          id: string
+          tasks: Json
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          tasks?: Json
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          tasks?: Json
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           created_at: string
@@ -173,6 +200,114 @@ export type Database = {
           },
         ]
       }
+      email_settings: {
+        Row: {
+          auto_triage_enabled: boolean | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_triage_enabled?: boolean | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_triage_enabled?: boolean | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      emails: {
+        Row: {
+          body: string
+          calendar_check: Json | null
+          category: string | null
+          client_id: string | null
+          created_at: string | null
+          email_provider_id: string
+          event_id: string | null
+          extracted_info: Json | null
+          final_response_text: string | null
+          id: string
+          is_urgent: boolean | null
+          received_at: string
+          response_sent: boolean | null
+          response_sent_at: string | null
+          sender_email: string
+          sender_name: string | null
+          subject: string
+          suggested_response: string | null
+          upsell_suggestions: Json | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          calendar_check?: Json | null
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          email_provider_id: string
+          event_id?: string | null
+          extracted_info?: Json | null
+          final_response_text?: string | null
+          id?: string
+          is_urgent?: boolean | null
+          received_at: string
+          response_sent?: boolean | null
+          response_sent_at?: string | null
+          sender_email: string
+          sender_name?: string | null
+          subject: string
+          suggested_response?: string | null
+          upsell_suggestions?: Json | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          calendar_check?: Json | null
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          email_provider_id?: string
+          event_id?: string | null
+          extracted_info?: Json | null
+          final_response_text?: string | null
+          id?: string
+          is_urgent?: boolean | null
+          received_at?: string
+          response_sent?: boolean | null
+          response_sent_at?: string | null
+          sender_email?: string
+          sender_name?: string | null
+          subject?: string
+          suggested_response?: string | null
+          upsell_suggestions?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emails_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_staff: {
         Row: {
           confirmation_status: string
@@ -211,6 +346,44 @@ export type Database = {
             columns: ["team_member_id"]
             isOneToOne: false
             referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          deadline: string
+          event_id: string
+          id: string
+          status: string | null
+          task_name: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          deadline: string
+          event_id: string
+          id?: string
+          status?: string | null
+          task_name: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          deadline?: string
+          event_id?: string
+          id?: string
+          status?: string | null
+          task_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_tasks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -360,6 +533,42 @@ export type Database = {
           message?: string
           read?: boolean
           type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oauth_tokens: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          email_address: string
+          expires_at: string
+          id: string
+          provider: string
+          refresh_token: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          email_address: string
+          expires_at: string
+          id?: string
+          provider: string
+          refresh_token: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          email_address?: string
+          expires_at?: string
+          id?: string
+          provider?: string
+          refresh_token?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
