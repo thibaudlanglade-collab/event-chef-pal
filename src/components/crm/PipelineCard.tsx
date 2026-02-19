@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Eye, Mail, Calendar, MoreVertical, ArrowRight, GripVertical, Bell } from "lucide-react";
+import { Eye, Mail, Calendar, MoreVertical, ArrowRight, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -44,6 +44,8 @@ export function PipelineCardComponent({ card, scheduledFollowup, onView, onFollo
     data: { type: "card", card },
   });
 
+  const dragProps = { ...attributes, ...listeners };
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -60,7 +62,7 @@ export function PipelineCardComponent({ card, scheduledFollowup, onView, onFollo
   const amount = card.amount ? new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(card.amount)) : "";
 
   return (
-    <div ref={setNodeRef} style={style} className={cn("transition-opacity", isDragging && "opacity-50")}>
+    <div ref={setNodeRef} style={style} {...dragProps} className={cn("transition-opacity cursor-grab active:cursor-grabbing", isDragging && "opacity-50")}>
       <Card className={cn(
         "rounded-xl border-l-4 bg-card hover:shadow-md transition-shadow",
         getDaysColor(daysSinceEntered)
@@ -69,9 +71,6 @@ export function PipelineCardComponent({ card, scheduledFollowup, onView, onFollo
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <button {...attributes} {...listeners} className="cursor-grab text-muted-foreground/40 hover:text-muted-foreground shrink-0">
-                <GripVertical className="h-4 w-4" />
-              </button>
               <span className="font-semibold text-sm truncate">{card.clients?.name || card.title}</span>
             </div>
             <div className="flex items-center gap-1 shrink-0">

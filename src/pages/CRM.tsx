@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, BarChart3 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Search, LayoutGrid, List } from "lucide-react";
 import { usePipelineStages, usePipelineCards, useMovePipelineCard, useUpdatePipelineCard, useScheduledFollowups } from "@/hooks/usePipeline";
 import { PipelineCardComponent } from "@/components/crm/PipelineCard";
 import { PipelineStats } from "@/components/crm/PipelineStats";
@@ -48,6 +50,7 @@ const CRM = () => {
   const [filterType, setFilterType] = useState("all");
   const [activeCard, setActiveCard] = useState<any>(null);
   const [draggingCard, setDraggingCard] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
 
   // Modals
   const [viewCard, setViewCard] = useState<any>(null);
@@ -161,9 +164,19 @@ const CRM = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">📊 CRM — Pipeline Commercial</h1>
         </div>
-        <Button variant="accent" onClick={() => { setAddCardStageId(undefined); setAddCardOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> Nouveau client
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex border rounded-lg overflow-hidden">
+            <Button variant={viewMode === "kanban" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("kanban")} className="rounded-none">
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button variant={viewMode === "table" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("table")} className="rounded-none">
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button variant="accent" onClick={() => { setAddCardStageId(undefined); setAddCardOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Nouveau client
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -188,8 +201,8 @@ const CRM = () => {
       {/* Stats */}
       {cards && stages && <PipelineStats cards={cards} stages={stages} />}
 
-      {/* Kanban - Desktop */}
-      <div className="hidden md:block">
+      {/* Kanban View */}
+      {viewMode === "kanban" && (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex gap-3 overflow-x-auto pb-4">
             {sortedStages.map((stage: any) => {
@@ -239,38 +252,65 @@ const CRM = () => {
             )}
           </DragOverlay>
         </DndContext>
-      </div>
+      )}
 
-      {/* Mobile - List view */}
-      <div className="md:hidden space-y-3">
-        <Select value={filterType === "all" ? sortedStages[0]?.id || "" : ""} onValueChange={(v) => setActiveCard(v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Filtrer par étape" />
-          </SelectTrigger>
-          <SelectContent>
-            {sortedStages.map((s: any) => (
-              <SelectItem key={s.id} value={s.id}>{s.name} ({getCardsForStage(s.id).length})</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {filteredCards.map((card: any) => (
-          <PipelineCardComponent
-            key={card.id}
-            card={card}
-            scheduledFollowup={getFollowupForCard(card.id)}
-            onView={setViewCard}
-            onFollowUp={setFollowUpCard}
-            onSchedule={setScheduleCard}
-            onMoveNext={handleMoveNext}
-            onMoveTo={handleMoveTo}
-            onArchive={(c) => {
-              const lost = stages?.find((s: any) => s.name === "Perdu");
-              if (lost) setLostCard({ card: c, toStageId: lost.id });
-            }}
-            stages={sortedStages}
-          />
-        ))}
-      </div>
+      {/* Table View */}
+      {viewMode === "table" && (
+        <div className="rounded-xl border bg-card overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">Client</TableHead>
+                <TableHead className="font-semibold">Type</TableHead>
+                <TableHead className="font-semibold">Étape</TableHead>
+                <TableHead className="font-semibold">Date événement</TableHead>
+                <TableHead className="font-semibold">Couverts</TableHead>
+                <TableHead className="font-semibold">Montant</TableHead>
+                <TableHead className="font-semibold">Jours dans l'étape</TableHead>
+                <TableHead className="font-semibold">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedStages.map((stage: any) => {
+                const stageCards = getCardsForStage(stage.id);
+                if (stageCards.length === 0) return null;
+                return stageCards.map((card: any, idx: number) => {
+                  const daysSince = Math.floor((Date.now() - new Date(card.entered_stage_at).getTime()) / (1000 * 60 * 60 * 24));
+                  const eventType = card.events?.type || "Événement";
+                  const eventDate = card.events?.date ? new Date(card.events.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
+                  const guestCount = card.events?.guest_count || 0;
+                  const amount = card.amount ? new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(card.amount)) : "—";
+                  return (
+                    <TableRow key={card.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setViewCard(card)}>
+                      <TableCell className="font-medium">{card.clients?.name || card.title}</TableCell>
+                      <TableCell>{eventType}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" style={{ borderColor: stage.color, color: stage.color }} className="text-xs">
+                          {stage.name}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{eventDate}</TableCell>
+                      <TableCell>{guestCount}</TableCell>
+                      <TableCell className="font-medium">{amount}</TableCell>
+                      <TableCell>
+                        <span className={daysSince > 10 ? "text-destructive font-bold" : daysSince > 5 ? "text-orange-500" : "text-muted-foreground"}>
+                          {daysSince}j
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setFollowUpCard(card)}>Relancer</Button>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleMoveNext(card)}>→</Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                });
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Modals */}
       <ClientDrawer card={viewCard} stages={sortedStages} open={!!viewCard} onClose={() => setViewCard(null)} />
