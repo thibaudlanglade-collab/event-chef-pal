@@ -878,38 +878,50 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          address: string | null
           company_name: string
           created_at: string | null
           email: string
           first_name: string
           id: string
           last_name: string
+          logo_url: string | null
           phone: string | null
           pricing_range: string | null
+          quote_validity_days: number | null
+          siret: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          address?: string | null
           company_name?: string
           created_at?: string | null
           email?: string
           first_name?: string
           id?: string
           last_name?: string
+          logo_url?: string | null
           phone?: string | null
           pricing_range?: string | null
+          quote_validity_days?: number | null
+          siret?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          address?: string | null
           company_name?: string
           created_at?: string | null
           email?: string
           first_name?: string
           id?: string
           last_name?: string
+          logo_url?: string | null
           phone?: string | null
           pricing_range?: string | null
+          quote_validity_days?: number | null
+          siret?: string | null
           updated_at?: string | null
           user_id?: string
         }
