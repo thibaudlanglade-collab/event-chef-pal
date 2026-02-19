@@ -123,7 +123,7 @@ export function PipelineCardComponent({ card, scheduledFollowup, onView, onFollo
           )}
 
           {/* Actions */}
-          <div className="flex gap-1 pt-1">
+          <div className="flex gap-1 pt-1 justify-center">
             <Button variant="outline" size="icon" className="h-7 w-7 shrink-0" onClick={() => onView(card)} title="Voir">
               <Eye className="h-3.5 w-3.5" />
             </Button>
