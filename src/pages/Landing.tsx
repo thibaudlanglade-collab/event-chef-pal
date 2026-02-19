@@ -15,7 +15,8 @@ import {
   Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import logo from "@/assets/logo.png";
+import logoText from "@/assets/logo-text.png";
+import logoBird from "@/assets/logo-bird.png";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -26,8 +27,7 @@ const Landing = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2.5">
-            <img src={logo} alt="CaterPilot" className="h-9 w-9 rounded-xl object-contain" />
-            <span className="text-xl font-bold text-foreground">CaterPilot</span>
+            <img src={logoText} alt="Sur le Passe" className="h-8 object-contain" />
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">Fonctionnalités</a>
@@ -52,21 +52,21 @@ const Landing = () => {
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             {/* Left: Text */}
           <div className="flex flex-col gap-6 z-10">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium w-fit border border-primary/15">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-foreground/5 text-foreground text-sm font-medium w-fit border border-foreground/10">
                 <Sparkles className="h-4 w-4" />
                 Nouveau — Assistant opérationnel pour traiteurs
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight">
                 Gérez vos événements,{" "}
-                <span className="bg-gradient-to-r from-primary to-[hsl(263,70%,58%)] bg-clip-text text-transparent">
+                <span className="underline decoration-foreground/30 decoration-4 underline-offset-4">
                   simplifiez
                 </span>{" "}
                 votre quotidien
               </h1>
 
               <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
-                CaterPilot centralise vos devis, événements, équipes et stocks en une seule interface.
+                Sur le Passe centralise vos devis, événements, équipes et stocks en une seule interface.
                 Fini les fichiers Excel éparpillés et les oublis de dernière minute.
               </p>
 
@@ -212,7 +212,7 @@ const Landing = () => {
               { value: "< 5 min", label: "par devis", sub: "création et envoi inclus" },
             ].map((stat, i) => (
               <div key={i} className="text-center">
-                <p className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-primary to-[hsl(263,70%,58%)] bg-clip-text text-transparent">
+                <p className="text-4xl lg:text-5xl font-extrabold text-foreground">
                   {stat.value}
                 </p>
                 <p className="mt-2 text-base font-semibold text-foreground">{stat.label}</p>
@@ -356,7 +356,7 @@ const Landing = () => {
                   </div>
                   <p className="text-sm text-foreground leading-relaxed italic">"{t.quote}"</p>
                   <div className="mt-6 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-[hsl(263,70%,58%)] flex items-center justify-center text-primary-foreground font-bold text-sm">
+                    <div className="h-10 w-10 rounded-full bg-foreground flex items-center justify-center text-background font-bold text-sm">
                       {t.name.charAt(0)}
                     </div>
                     <div>
@@ -373,28 +373,27 @@ const Landing = () => {
 
       {/* Final CTA */}
       <section
-        className="py-20 px-4"
-        style={{ background: "linear-gradient(135deg, hsl(239 84% 67%), hsl(263 70% 50%))" }}
+        className="py-20 px-4 bg-foreground"
       >
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
             Prêt à simplifier votre activité ?
           </h2>
           <p className="mt-4 text-white/70 text-lg">
-            Rejoignez les traiteurs qui ont déjà transformé leur gestion avec CaterPilot.
+            Rejoignez les traiteurs qui ont déjà transformé leur gestion avec Sur le Passe.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               size="lg"
               onClick={() => navigate("/register")}
-              className="gap-2 text-base px-8 py-6 bg-white text-primary hover:bg-white/90 shadow-lg font-bold"
+              className="gap-2 text-base px-8 py-6 bg-background text-foreground hover:bg-background/90 shadow-lg font-bold"
             >
               Commencer gratuitement <ArrowRight className="h-5 w-5" />
             </Button>
             <Button
               variant="outline"
               size="lg"
-              className="gap-2 text-base px-8 py-6 border-white/30 text-white hover:bg-white/10 bg-transparent"
+              className="gap-2 text-base px-8 py-6 border-background/30 text-background hover:bg-background/10 bg-transparent"
             >
               Voir la démo
             </Button>
@@ -408,8 +407,7 @@ const Landing = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <img src={logo} alt="CaterPilot" className="h-8 w-8 rounded-lg object-contain" />
-                <span className="text-lg font-bold">CaterPilot</span>
+                <img src={logoText} alt="Sur le Passe" className="h-7 object-contain" />
               </div>
               <p className="text-sm text-muted-foreground">
                 L'assistant opérationnel des traiteurs indépendants.
@@ -441,7 +439,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-            © 2026 CaterPilot. Tous droits réservés.
+            © 2026 Sur le Passe. Tous droits réservés.
           </div>
         </div>
       </footer>

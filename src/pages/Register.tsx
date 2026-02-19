@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Eye, EyeOff, AlertTriangle } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logoText from "@/assets/logo-text.png";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -74,33 +74,30 @@ export default function Register() {
     <div className="min-h-screen flex">
       {/* Left panel */}
       <div
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12"
-        style={{ background: "linear-gradient(135deg, hsl(239 84% 67%), hsl(263 70% 50%))" }}
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-foreground"
       >
         <div className="flex items-center gap-3">
-          <img src={logo} alt="CaterPilot" className="h-10 w-10 rounded-xl object-contain" />
-          <span className="text-xl font-bold text-white">CaterPilot</span>
+          <img src={logoText} alt="Sur le Passe" className="h-9 object-contain brightness-0 invert" />
         </div>
         <div>
-          <h1 className="text-4xl font-extrabold text-white leading-tight">
+          <h1 className="text-4xl font-extrabold text-background leading-tight">
             Lancez-vous en<br />quelques minutes.
           </h1>
-          <p className="mt-4 text-white/70 text-lg max-w-md">
+          <p className="mt-4 text-background/60 text-lg max-w-md">
             Créez votre compte et commencez à gérer vos événements dès aujourd'hui.
           </p>
         </div>
-        <p className="text-white/40 text-sm">© 2026 CaterPilot</p>
+        <p className="text-background/30 text-sm">© 2026 Sur le Passe</p>
       </div>
 
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background overflow-y-auto">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <img src={logo} alt="CaterPilot" className="h-10 w-10 rounded-xl object-contain" />
-            <span className="text-xl font-bold">CaterPilot</span>
+            <img src={logoText} alt="Sur le Passe" className="h-9 object-contain" />
           </div>
 
-          <h2 className="text-2xl font-bold">Créer votre compte CaterPilot</h2>
+          <h2 className="text-2xl font-bold">Créer votre compte Sur le Passe</h2>
           <p className="text-muted-foreground mt-1">Gérez votre activité traiteur en toute simplicité.</p>
 
           {/* Email exists warning */}
