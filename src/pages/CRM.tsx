@@ -1,17 +1,301 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { ContactRound } from "lucide-react";
+import { useState, useMemo } from "react";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Search, BarChart3 } from "lucide-react";
+import { usePipelineStages, usePipelineCards, useMovePipelineCard, useUpdatePipelineCard, useScheduledFollowups } from "@/hooks/usePipeline";
+import { PipelineCardComponent } from "@/components/crm/PipelineCard";
+import { PipelineStats } from "@/components/crm/PipelineStats";
+import { ClientDrawer } from "@/components/crm/ClientDrawer";
+import { FollowUpModal } from "@/components/crm/FollowUpModal";
+import { AddCardModal } from "@/components/crm/AddCardModal";
+import { LostReasonModal } from "@/components/crm/LostReasonModal";
+import { toast } from "sonner";
 
-const CRM = () => (
-  <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
-    <h1 className="text-2xl font-bold">CRM</h1>
-    <p className="text-muted-foreground text-sm">Gérez vos contacts clients, suivez l'historique des interactions et pilotez vos prospects. (Bientôt disponible)</p>
-    <Card className="rounded-2xl">
-      <CardContent className="p-12 text-center space-y-4">
-        <ContactRound className="h-12 w-12 mx-auto text-muted-foreground/40" />
-        <p className="text-muted-foreground">Fonctionnalité à venir — gestion de la relation client.</p>
-      </CardContent>
-    </Card>
-  </div>
-);
+function DroppableColumn({ stage, children, count }: { stage: any; children: React.ReactNode; count: number }) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex flex-col min-w-[280px] max-w-[320px] rounded-xl transition-colors ${isOver ? "bg-accent/30" : "bg-muted/30"}`}
+    >
+      <div className="flex items-center justify-between px-3 py-2.5 border-b">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
+          <span className="font-semibold text-sm">{stage.name}</span>
+        </div>
+        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{count}</span>
+      </div>
+      <div className="flex-1 p-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-320px)]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const CRM = () => {
+  const { data: stages, isLoading: stagesLoading } = usePipelineStages();
+  const { data: cards, isLoading: cardsLoading } = usePipelineCards();
+  const { data: followups } = useScheduledFollowups();
+  const moveCard = useMovePipelineCard();
+  const updateCard = useUpdatePipelineCard();
+
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [activeCard, setActiveCard] = useState<any>(null);
+  const [draggingCard, setDraggingCard] = useState<any>(null);
+
+  // Modals
+  const [viewCard, setViewCard] = useState<any>(null);
+  const [followUpCard, setFollowUpCard] = useState<any>(null);
+  const [scheduleCard, setScheduleCard] = useState<any>(null);
+  const [addCardOpen, setAddCardOpen] = useState(false);
+  const [addCardStageId, setAddCardStageId] = useState<string | undefined>();
+  const [lostCard, setLostCard] = useState<any>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const filteredCards = useMemo(() => {
+    if (!cards) return [];
+    return cards.filter((c: any) => {
+      const matchSearch = !search || c.title.toLowerCase().includes(search.toLowerCase()) || c.clients?.name?.toLowerCase().includes(search.toLowerCase());
+      const matchType = filterType === "all" || c.events?.type?.toLowerCase() === filterType;
+      return matchSearch && matchType;
+    });
+  }, [cards, search, filterType]);
+
+  const getCardsForStage = (stageId: string) => filteredCards.filter((c: any) => c.stage_id === stageId);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const card = cards?.find((c: any) => c.id === event.active.id);
+    setDraggingCard(card);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setDraggingCard(null);
+    const { active, over } = event;
+    if (!over || !stages) return;
+
+    const card = cards?.find((c: any) => c.id === active.id);
+    if (!card) return;
+
+    // Check if dropped on a stage column
+    const targetStage = stages.find((s: any) => s.id === over.id);
+    if (!targetStage || targetStage.id === card.stage_id) return;
+
+    // Check for "Perdu" stage
+    const lostStage = stages.find((s: any) => s.name === "Perdu");
+    if (targetStage.id === lostStage?.id) {
+      setLostCard({ card, toStageId: targetStage.id });
+      return;
+    }
+
+    moveCard.mutate({
+      cardId: card.id,
+      fromStageId: card.stage_id,
+      toStageId: targetStage.id,
+    });
+  };
+
+  const handleMoveNext = (card: any) => {
+    if (!stages) return;
+    const currentStage = stages.find((s: any) => s.id === card.stage_id);
+    if (!currentStage) return;
+    const nextStage = stages.find((s: any) => s.position === currentStage.position + 1);
+    if (!nextStage) { toast.info("Dernière étape atteinte"); return; }
+
+    const lostStage = stages.find((s: any) => s.name === "Perdu");
+    if (nextStage.id === lostStage?.id) {
+      setLostCard({ card, toStageId: nextStage.id });
+      return;
+    }
+
+    moveCard.mutate({ cardId: card.id, fromStageId: card.stage_id, toStageId: nextStage.id });
+  };
+
+  const handleMoveTo = (card: any, stageId: string) => {
+    if (stageId === card.stage_id) return;
+    const lostStage = stages?.find((s: any) => s.name === "Perdu");
+    if (stageId === lostStage?.id) {
+      setLostCard({ card, toStageId: stageId });
+      return;
+    }
+    moveCard.mutate({ cardId: card.id, fromStageId: card.stage_id, toStageId: stageId });
+  };
+
+  const handleLostConfirm = (reason: string) => {
+    if (!lostCard) return;
+    const note = reason ? `Raison : ${reason}` : undefined;
+    moveCard.mutate({ cardId: lostCard.card.id, fromStageId: lostCard.card.stage_id, toStageId: lostCard.toStageId, note });
+    // Update event status if linked
+    if (lostCard.card.event_id) {
+      updateCard.mutate({ id: lostCard.card.id, notes: `${lostCard.card.notes || ""}\n❌ Perdu${reason ? ` — ${reason}` : ""}` });
+    }
+    setLostCard(null);
+  };
+
+  const getFollowupForCard = (cardId: string) => followups?.find((f: any) => f.card_id === cardId);
+
+  if (stagesLoading || cardsLoading) {
+    return (
+      <div className="p-4 lg:p-8 space-y-4">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-20 w-full" />
+        <div className="flex gap-4">
+          {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-96 w-72" />)}
+        </div>
+      </div>
+    );
+  }
+
+  const sortedStages = stages?.slice().sort((a: any, b: any) => a.position - b.position) || [];
+
+  return (
+    <div className="p-4 lg:p-6 space-y-4 h-full">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">📊 CRM — Pipeline Commercial</h1>
+        </div>
+        <Button variant="accent" onClick={() => { setAddCardStageId(undefined); setAddCardOpen(true); }}>
+          <Plus className="h-4 w-4 mr-1" /> Nouveau client
+        </Button>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un client ou événement..." className="pl-9" />
+        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous</SelectItem>
+            <SelectItem value="mariage">Mariages</SelectItem>
+            <SelectItem value="entreprise">Entreprises</SelectItem>
+            <SelectItem value="anniversaire">Anniversaires</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Stats */}
+      {cards && stages && <PipelineStats cards={cards} stages={stages} />}
+
+      {/* Kanban - Desktop */}
+      <div className="hidden md:block">
+        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="flex gap-3 overflow-x-auto pb-4">
+            {sortedStages.map((stage: any) => {
+              const stageCards = getCardsForStage(stage.id);
+              return (
+                <DroppableColumn key={stage.id} stage={stage} count={stageCards.length}>
+                  <SortableContext items={stageCards.map((c: any) => c.id)} strategy={verticalListSortingStrategy}>
+                    {stageCards.map((card: any) => (
+                      <PipelineCardComponent
+                        key={card.id}
+                        card={card}
+                        scheduledFollowup={getFollowupForCard(card.id)}
+                        onView={setViewCard}
+                        onFollowUp={setFollowUpCard}
+                        onSchedule={setScheduleCard}
+                        onMoveNext={handleMoveNext}
+                        onMoveTo={handleMoveTo}
+                        onArchive={(c) => {
+                          const lost = stages?.find((s: any) => s.name === "Perdu");
+                          if (lost) setLostCard({ card: c, toStageId: lost.id });
+                        }}
+                        stages={sortedStages}
+                      />
+                    ))}
+                  </SortableContext>
+                  <Button variant="ghost" size="sm" className="w-full mt-1 text-xs text-muted-foreground" onClick={() => { setAddCardStageId(stage.id); setAddCardOpen(true); }}>
+                    <Plus className="h-3 w-3 mr-1" /> Ajouter
+                  </Button>
+                </DroppableColumn>
+              );
+            })}
+          </div>
+          <DragOverlay>
+            {draggingCard && (
+              <div className="opacity-80 rotate-2 w-[280px]">
+                <PipelineCardComponent
+                  card={draggingCard}
+                  onView={() => {}}
+                  onFollowUp={() => {}}
+                  onSchedule={() => {}}
+                  onMoveNext={() => {}}
+                  onMoveTo={() => {}}
+                  onArchive={() => {}}
+                  stages={[]}
+                />
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      </div>
+
+      {/* Mobile - List view */}
+      <div className="md:hidden space-y-3">
+        <Select value={filterType === "all" ? sortedStages[0]?.id || "" : ""} onValueChange={(v) => setActiveCard(v)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filtrer par étape" />
+          </SelectTrigger>
+          <SelectContent>
+            {sortedStages.map((s: any) => (
+              <SelectItem key={s.id} value={s.id}>{s.name} ({getCardsForStage(s.id).length})</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {filteredCards.map((card: any) => (
+          <PipelineCardComponent
+            key={card.id}
+            card={card}
+            scheduledFollowup={getFollowupForCard(card.id)}
+            onView={setViewCard}
+            onFollowUp={setFollowUpCard}
+            onSchedule={setScheduleCard}
+            onMoveNext={handleMoveNext}
+            onMoveTo={handleMoveTo}
+            onArchive={(c) => {
+              const lost = stages?.find((s: any) => s.name === "Perdu");
+              if (lost) setLostCard({ card: c, toStageId: lost.id });
+            }}
+            stages={sortedStages}
+          />
+        ))}
+      </div>
+
+      {/* Modals */}
+      <ClientDrawer card={viewCard} stages={sortedStages} open={!!viewCard} onClose={() => setViewCard(null)} />
+      <FollowUpModal
+        card={followUpCard}
+        stage={stages?.find((s: any) => s.id === followUpCard?.stage_id)}
+        open={!!followUpCard}
+        onClose={() => setFollowUpCard(null)}
+      />
+      <FollowUpModal
+        card={scheduleCard}
+        stage={stages?.find((s: any) => s.id === scheduleCard?.stage_id)}
+        open={!!scheduleCard}
+        onClose={() => setScheduleCard(null)}
+        scheduleMode
+      />
+      <AddCardModal open={addCardOpen} onClose={() => setAddCardOpen(false)} stages={sortedStages} defaultStageId={addCardStageId} />
+      <LostReasonModal
+        open={!!lostCard}
+        onClose={() => setLostCard(null)}
+        onConfirm={handleLostConfirm}
+        clientName={lostCard?.card?.clients?.name || lostCard?.card?.title || ""}
+      />
+    </div>
+  );
+};
 
 export default CRM;

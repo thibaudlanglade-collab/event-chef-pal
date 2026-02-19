@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings as SettingsIcon, Webhook, CheckCircle, XCircle, LogOut, Mail, HelpCircle, Shield, Package, Building2 } from "lucide-react";
+import { Settings as SettingsIcon, Webhook, CheckCircle, XCircle, LogOut, Mail, HelpCircle, Shield, Package, Building2, BarChart3 } from "lucide-react";
 import { useWebhookConfigs, useUpsertWebhook } from "@/hooks/useSupabase";
 import { useOAuthToken, useDeleteOAuthToken, useEmailSettings, useUpdateEmailSettings } from "@/hooks/useEmails";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import CatalogSettings from "@/components/settings/CatalogSettings";
 import CompanySettings from "@/components/settings/CompanySettings";
+import { CrmPipelineSettings } from "@/components/settings/CrmPipelineSettings";
 
 const webhookFeatures = [
   { key: "mail_triage", label: "Triage des mails (legacy)", description: "Ancien système via webhook n8n" },
@@ -101,6 +102,7 @@ const SettingsPage = () => {
           <TabsTrigger value="general" className="gap-1.5"><SettingsIcon className="h-3.5 w-3.5" /> Général</TabsTrigger>
           <TabsTrigger value="company" className="gap-1.5"><Building2 className="h-3.5 w-3.5" /> Entreprise</TabsTrigger>
           <TabsTrigger value="catalog" className="gap-1.5"><Package className="h-3.5 w-3.5" /> Catalogue</TabsTrigger>
+          <TabsTrigger value="crm" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> CRM</TabsTrigger>
         </TabsList>
 
         <TabsContent value="company">
@@ -109,6 +111,10 @@ const SettingsPage = () => {
 
         <TabsContent value="catalog">
           <CatalogSettings />
+        </TabsContent>
+
+        <TabsContent value="crm">
+          <CrmPipelineSettings />
         </TabsContent>
 
         <TabsContent value="general" className="space-y-6">

@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.generate-quote-email]
 verify_jwt = false
+
+[functions.send-scheduled-followups]
+verify_jwt = false
+
+[functions.check-pipeline-inactivity]
+verify_jwt = false
