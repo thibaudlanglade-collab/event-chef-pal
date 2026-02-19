@@ -86,7 +86,17 @@ export default function CompanySettings() {
           </div>
           <div>
             <Label>SIRET / N° entreprise</Label>
-            <Input value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value })} placeholder="123 456 789 00012" className="mt-1" />
+            <Input
+              value={form.siret}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 14);
+                const formatted = digits.replace(/(\d{3})(?=\d)/g, "$1 ").trim();
+                setForm({ ...form, siret: formatted });
+              }}
+              placeholder="123 456 789 00012"
+              className="mt-1"
+              maxLength={17}
+            />
           </div>
         </div>
 
@@ -105,7 +115,7 @@ export default function CompanySettings() {
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <Label>Email</Label>
-            <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" />
+            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" />
           </div>
           <div>
             <Label>Téléphone</Label>

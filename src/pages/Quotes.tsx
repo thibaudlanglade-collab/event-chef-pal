@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, FileDown, Link2, Save, Users, Calendar, Package, Sparkles } from "lucide-react";
+import { Plus, Trash2, FileDown, Link2, Save, Users, Calendar, Package, UserPlus, CalendarPlus } from "lucide-react";
 import { useClients, useEvents, useCreateQuote } from "@/hooks/useSupabase";
 import { CATALOG_CATEGORIES, PRICING_TYPES, type CatalogItem } from "@/hooks/useCatalog";
-import { quoteTemplates, type TemplateItem } from "@/data/quoteTemplates";
 import CatalogModal from "@/components/quotes/CatalogModal";
+import CreateClientModal from "@/components/quotes/CreateClientModal";
+import CreateEventModal from "@/components/quotes/CreateEventModal";
 import QuotePdfDocument, { type PdfQuoteItem, type CompanyInfo } from "@/components/quotes/QuotePdfDocument";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,6 @@ const Quotes = () => {
   const { data: clients, isLoading: cLoading } = useClients();
   const { data: events, isLoading: eLoading } = useEvents();
   const createQuote = useCreateQuote();
-
   const { data: profile } = useUserProfile();
 
   const [items, setItems] = useState<QuoteItem[]>([emptyItem()]);
@@ -51,6 +51,8 @@ const Quotes = () => {
   const [depositPercent, setDepositPercent] = useState(30);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [eventModalOpen, setEventModalOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const event = events?.find((e) => e.id === selectedEvent);
@@ -78,27 +80,19 @@ const Quotes = () => {
 
   const removeItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
 
-  const addCatalogItem = (ci: CatalogItem) => {
-    const qty = ci.pricing_type === "per_person" ? (guestCount || 1) : 1;
-    setItems((prev) => [...prev, {
-      id: newId(), name: ci.name, description: ci.description ?? "", category: ci.category,
-      pricingType: ci.pricing_type, qty, unitPrice: ci.sale_price, tva: ci.default_tva,
-    }]);
-    setCatalogOpen(false);
-    toast.success(`"${ci.name}" ajouté`);
-  };
-
-  const applyTemplate = (templateKey: string) => {
-    const tpl = quoteTemplates.find((t) => t.key === templateKey);
-    if (!tpl) return;
-    const gc = guestCount || 1;
-    const newItems: QuoteItem[] = tpl.items.map((ti) => ({
-      id: newId(), name: ti.name, description: ti.description ?? "", category: ti.category,
-      pricingType: ti.pricing_type, qty: ti.pricing_type === "per_person" ? gc : ti.qty,
-      unitPrice: ti.unitPrice, tva: ti.tva,
+  const addCatalogItems = (catalogItems: CatalogItem[]) => {
+    const newItems: QuoteItem[] = catalogItems.map((ci) => ({
+      id: newId(),
+      name: ci.name,
+      description: ci.description ?? "",
+      category: ci.category,
+      pricingType: ci.pricing_type,
+      qty: ci.pricing_type === "per_person" ? (guestCount || 1) : 1,
+      unitPrice: ci.sale_price ?? 0,
+      tva: ci.default_tva,
     }));
     setItems((prev) => [...prev, ...newItems]);
-    toast.success(`Template "${tpl.label}" appliqué`);
+    toast.success(`${catalogItems.length} prestation(s) ajoutée(s)`);
   };
 
   // ─── Calculations ───
@@ -143,7 +137,7 @@ const Quotes = () => {
       status,
       items: quoteItems as any,
       subtotal: totalHT,
-      tva_rate: 0, // multi-rate
+      tva_rate: 0,
       total_ttc: totalTTC,
       notes: notes || null,
     });
@@ -160,12 +154,12 @@ const Quotes = () => {
       const client = clients?.find((c) => c.id === selectedClient);
       const companyInfo: CompanyInfo = {
         companyName: profile?.company_name,
-        address: (profile as any)?.address,
-        siret: (profile as any)?.siret,
+        address: profile?.address ?? undefined,
+        siret: profile?.siret ?? undefined,
         phone: profile?.phone || undefined,
         email: profile?.email,
-        logoUrl: (profile as any)?.logo_url,
-        quoteValidityDays: (profile as any)?.quote_validity_days ?? 30,
+        logoUrl: profile?.logo_url ?? undefined,
+        quoteValidityDays: profile?.quote_validity_days ?? 30,
       };
       const blob = await pdf(
         <QuotePdfDocument
@@ -196,7 +190,6 @@ const Quotes = () => {
   };
 
   const getCatLabel = (cat: string) => CATALOG_CATEGORIES.find((c) => c.value === cat)?.label ?? cat;
-  const getPricingLabel = (type: string) => PRICING_TYPES.find((p) => p.value === type)?.label ?? type;
 
   if (cLoading || eLoading) return <div className="p-8"><Skeleton className="h-96 w-full" /></div>;
 
@@ -204,7 +197,7 @@ const Quotes = () => {
     <div className="p-4 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Devis Express</h1>
-        <p className="text-muted-foreground text-sm">Créez un devis professionnel en quelques clics avec catalogue, templates et export PDF.</p>
+        <p className="text-muted-foreground text-sm">Créez un devis professionnel en quelques clics avec catalogue et export PDF.</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -215,38 +208,31 @@ const Quotes = () => {
             <CardContent className="p-5 grid sm:grid-cols-3 gap-4">
               <div>
                 <Label className="text-sm font-medium">Client</Label>
-                <select className="w-full mt-1.5 h-10 px-3 rounded-lg border border-input bg-muted/30 text-sm" value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)}>
-                  <option value="">— Choisir —</option>
-                  {clients?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <div className="flex gap-1.5 mt-1.5">
+                  <select className="flex-1 h-10 px-3 rounded-lg border border-input bg-muted/30 text-sm" value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)}>
+                    <option value="">— Choisir —</option>
+                    {clients?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setClientModalOpen(true)} title="Nouveau client">
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label className="text-sm font-medium">Événement lié</Label>
-                <select className="w-full mt-1.5 h-10 px-3 rounded-lg border border-input bg-muted/30 text-sm" value={selectedEvent} onChange={(e) => handleEventChange(e.target.value)}>
-                  <option value="">— Aucun —</option>
-                  {events?.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-                </select>
+                <div className="flex gap-1.5 mt-1.5">
+                  <select className="flex-1 h-10 px-3 rounded-lg border border-input bg-muted/30 text-sm" value={selectedEvent} onChange={(e) => handleEventChange(e.target.value)}>
+                    <option value="">— Aucun —</option>
+                    {events?.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                  </select>
+                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setEventModalOpen(true)} title="Nouvel événement">
+                    <CalendarPlus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label className="text-sm font-medium">Nb. convives</Label>
                 <Input type="number" min={0} value={guestCount} onChange={(e) => handleGuestCountChange(Number(e.target.value))} className="mt-1.5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Templates */}
-          <Card className="rounded-2xl border-dashed border-primary/20 bg-primary/[0.02]">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">Templates d'événement</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {quoteTemplates.map((tpl) => (
-                  <Button key={tpl.key} variant="outline" size="sm" className="gap-1.5" onClick={() => applyTemplate(tpl.key)}>
-                    <span>{tpl.icon}</span> {tpl.label}
-                  </Button>
-                ))}
               </div>
             </CardContent>
           </Card>
@@ -325,7 +311,7 @@ const Quotes = () => {
               })}
 
               {items.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">Ajoutez des lignes via le catalogue ou un template.</p>
+                <p className="text-sm text-muted-foreground text-center py-8">Ajoutez des lignes via le catalogue.</p>
               )}
 
               {/* Summary */}
@@ -425,7 +411,9 @@ const Quotes = () => {
         </div>
       </div>
 
-      <CatalogModal open={catalogOpen} onClose={() => setCatalogOpen(false)} onSelect={addCatalogItem} guestCount={guestCount} />
+      <CatalogModal open={catalogOpen} onClose={() => setCatalogOpen(false)} onSelectMultiple={addCatalogItems} guestCount={guestCount} />
+      <CreateClientModal open={clientModalOpen} onClose={() => setClientModalOpen(false)} onCreated={(id) => setSelectedClient(id)} />
+      <CreateEventModal open={eventModalOpen} onClose={() => setEventModalOpen(false)} onCreated={(id, gc) => { setSelectedEvent(id); if (gc) handleGuestCountChange(gc); }} />
     </div>
   );
 };

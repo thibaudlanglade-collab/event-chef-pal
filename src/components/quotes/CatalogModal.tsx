@@ -3,21 +3,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Package } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Search, Package, ShoppingCart } from "lucide-react";
 import { useCatalogItems, CATALOG_CATEGORIES, PRICING_TYPES, type CatalogItem } from "@/hooks/useCatalog";
 import { cn } from "@/lib/utils";
 
 interface CatalogModalProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (item: CatalogItem) => void;
+  onSelectMultiple: (items: CatalogItem[]) => void;
   guestCount: number;
 }
 
-export default function CatalogModal({ open, onClose, onSelect, guestCount }: CatalogModalProps) {
+export default function CatalogModal({ open, onClose, onSelectMultiple, guestCount }: CatalogModalProps) {
   const { data: items, isLoading } = useCatalogItems();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filtered = (items ?? []).filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
@@ -27,13 +29,31 @@ export default function CatalogModal({ open, onClose, onSelect, guestCount }: Ca
 
   const getPricingLabel = (type: string) => PRICING_TYPES.find((p) => p.value === type)?.label ?? type;
 
-  const getDisplayQty = (item: CatalogItem) => {
-    if (item.pricing_type === "per_person") return guestCount || 1;
-    return 1;
+  const toggleItem = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleConfirm = () => {
+    const selected = (items ?? []).filter((i) => selectedIds.has(i.id));
+    if (selected.length > 0) {
+      onSelectMultiple(selected);
+    }
+    setSelectedIds(new Set());
+    onClose();
+  };
+
+  const handleClose = () => {
+    setSelectedIds(new Set());
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -82,10 +102,17 @@ export default function CatalogModal({ open, onClose, onSelect, guestCount }: Ca
             <p className="text-sm text-muted-foreground text-center py-8">Aucune prestation trouvée. Ajoutez-en depuis le catalogue.</p>
           ) : (
             filtered.map((item) => (
-              <div
+              <label
                 key={item.id}
-                className="flex items-center justify-between p-3 rounded-xl border hover:bg-muted/50 transition-colors group"
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
+                  selectedIds.has(item.id) ? "bg-primary/5 border-primary/30" : "hover:bg-muted/50"
+                )}
               >
+                <Checkbox
+                  checked={selectedIds.has(item.id)}
+                  onCheckedChange={() => toggleItem(item.id)}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm truncate">{item.name}</span>
@@ -94,7 +121,7 @@ export default function CatalogModal({ open, onClose, onSelect, guestCount }: Ca
                     </Badge>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                    <span>{item.sale_price.toFixed(2)} € / {item.unit ?? "unité"}</span>
+                    <span>{item.sale_price?.toFixed(2)} € / {item.unit ?? "unité"}</span>
                     <span>•</span>
                     <span>{getPricingLabel(item.pricing_type)}</span>
                     <span>•</span>
@@ -104,17 +131,19 @@ export default function CatalogModal({ open, onClose, onSelect, guestCount }: Ca
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => onSelect(item)}
-                >
-                  <Plus className="h-3.5 w-3.5" /> Ajouter
-                </Button>
-              </div>
+              </label>
             ))
           )}
+        </div>
+
+        {/* Confirm button */}
+        <div className="flex items-center justify-between pt-2 border-t">
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.size > 0 ? `${selectedIds.size} prestation(s) sélectionnée(s)` : "Cochez les prestations à ajouter"}
+          </span>
+          <Button onClick={handleConfirm} disabled={selectedIds.size === 0} className="gap-2">
+            <ShoppingCart className="h-4 w-4" /> Ajouter au devis
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
