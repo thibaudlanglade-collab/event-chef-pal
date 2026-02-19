@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/logo.png";
+import logoText from "@/assets/logo-text.png";
 import { NotificationBell } from "./NotificationBell";
 
 type NavGroup = {
@@ -74,12 +74,11 @@ export function AppSidebar() {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-        <img src={logo} alt="CaterPilot" className="h-9 w-9 rounded-xl object-contain shrink-0" />
-        {!collapsed && (
-          <span className="text-lg font-bold tracking-tight text-sidebar-foreground">
-            CaterPilot
-          </span>
+      <div className="flex items-center px-4 py-5 border-b border-sidebar-border">
+        {collapsed ? (
+          <span className="text-lg font-bold text-sidebar-foreground">SLP</span>
+        ) : (
+          <img src={logoText} alt="Sur le Passe" className="h-8 object-contain brightness-0 invert" />
         )}
       </div>
 
@@ -167,10 +166,9 @@ export function AppSidebar() {
   return (
     <>
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 border-b border-primary/20 bg-gradient-to-r from-primary to-[hsl(263,70%,58%)]">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 border-b border-border/20 bg-sidebar">
         <div className="flex items-center gap-2.5">
-          <img src={logo} alt="CaterPilot" className="h-8 w-8 rounded-lg object-contain" />
-          <span className="text-base font-bold text-sidebar-foreground">CaterPilot</span>
+          <img src={logoText} alt="Sur le Passe" className="h-7 object-contain brightness-0 invert" />
         </div>
         <button
           onClick={() => setMobileOpen(true)}
@@ -194,7 +192,7 @@ export function AppSidebar() {
           "lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-sidebar flex flex-col transition-transform duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
-        style={{ background: "linear-gradient(180deg, hsl(239 84% 67%), hsl(263 70% 50%))" }}
+        style={{ background: "hsl(30 15% 12%)" }}
       >
         <button
           onClick={() => setMobileOpen(false)}
@@ -211,7 +209,7 @@ export function AppSidebar() {
           "hidden lg:flex flex-col shrink-0 transition-all duration-200",
           collapsed ? "w-16" : "w-60"
         )}
-        style={{ background: "linear-gradient(180deg, hsl(239 84% 67%), hsl(263 70% 50%))" }}
+        style={{ background: "hsl(30 15% 12%)" }}
       >
         {sidebarContent}
       </aside>
