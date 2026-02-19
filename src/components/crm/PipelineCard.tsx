@@ -123,15 +123,15 @@ export function PipelineCardComponent({ card, scheduledFollowup, onView, onFollo
           )}
 
           {/* Actions */}
-          <div className="flex gap-1.5 pt-1">
-            <Button variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={() => onView(card)}>
-              <Eye className="h-3 w-3 mr-1" /> Voir
+          <div className="flex gap-1 pt-1">
+            <Button variant="outline" size="sm" className="h-7 text-xs flex-1 px-2" onClick={() => onView(card)}>
+              <Eye className="h-3 w-3 shrink-0" /><span className="hidden min-[320px]:inline ml-1">Voir</span>
             </Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={() => onFollowUp(card)}>
-              <Mail className="h-3 w-3 mr-1" /> Relancer
+            <Button variant="outline" size="sm" className="h-7 text-xs flex-1 px-2" onClick={() => onFollowUp(card)}>
+              <Mail className="h-3 w-3 shrink-0" /><span className="hidden min-[320px]:inline ml-1">Relancer</span>
             </Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={() => onSchedule(card)}>
-              <Calendar className="h-3 w-3 mr-1" /> Programmer
+            <Button variant="outline" size="sm" className="h-7 text-xs flex-1 px-2" onClick={() => onSchedule(card)}>
+              <Calendar className="h-3 w-3 shrink-0" /><span className="hidden min-[320px]:inline ml-1">Planifier</span>
             </Button>
           </div>
         </div>
