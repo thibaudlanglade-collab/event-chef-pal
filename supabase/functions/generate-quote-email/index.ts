@@ -15,22 +15,27 @@ Deno.serve(async (req) => {
 
     const { companyName, clientName, eventName, eventDate, totalTTC, guestCount } = await req.json();
 
-    const prompt = `Tu es l'assistant d'un traiteur professionnel français. Rédige un email court et professionnel pour accompagner l'envoi d'un devis.
+    const defaultSubject = `DEVIS ${(companyName || "").toUpperCase()}${eventName ? ` - ${eventName}` : ""}${eventDate ? ` - ${eventDate}` : ""}`;
+
+    const prompt = `Tu es l'assistant d'un traiteur professionnel français. Rédige un email COURT, SOBRE et PROFESSIONNEL pour accompagner l'envoi d'un devis.
 
 Contexte :
 - Entreprise : ${companyName}
 - Client : ${clientName}
 - Événement : ${eventName || "non précisé"}
-- Date de l'événement : ${eventDate || "non précisée"}
+- Date : ${eventDate || "non précisée"}
 - Montant TTC : ${totalTTC} €
-- Nombre de convives : ${guestCount || "non précisé"}
+- Convives : ${guestCount || "non précisé"}
 
-Consignes :
-- Ton chaleureux mais professionnel
-- Maximum 6 phrases pour le corps du mail
-- Inclure le montant et la date si disponibles
-- Terminer par une formule d'invitation à revenir vers toi
-- Ne pas inclure de signature (elle sera ajoutée automatiquement)
+Consignes STRICTES :
+- Ton B2B factuel et direct. PAS de formules enthousiastes ("C'est un plaisir", "expérience culinaire mémorable", etc.)
+- Maximum 4 phrases pour le corps du mail
+- Commence par "Bonjour" suivi du nom du client si disponible
+- Mentionne le montant et la date si disponibles
+- Termine par "Nous restons à votre disposition pour tout ajustement." ou équivalent sobre
+- NE PAS inclure de signature
+- L'objet doit suivre le format : DEVIS [NOM_ENTREPRISE] - [NOM_EVENEMENT] - [DATE]
+- Si l'événement ou la date ne sont pas précisés, les omettre de l'objet
 
 Réponds UNIQUEMENT avec un JSON valide au format :
 {"subject": "...", "body": "..."}`;
@@ -44,7 +49,7 @@ Réponds UNIQUEMENT avec un JSON valide au format :
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "Tu es un assistant spécialisé dans la rédaction d'emails commerciaux pour les traiteurs. Réponds uniquement en JSON." },
+          { role: "system", content: "Tu es un assistant de rédaction B2B sobre et efficace. Réponds uniquement en JSON." },
           { role: "user", content: prompt },
         ],
       }),
@@ -54,14 +59,14 @@ Réponds UNIQUEMENT avec un JSON valide au format :
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Trop de requêtes, réessayez dans quelques secondes." }), {
-          status: 429,
+        return new Response(JSON.stringify({ subject: defaultSubject, body: "", error: "rate_limit" }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Crédits IA épuisés." }), {
-          status: 402,
+        return new Response(JSON.stringify({ subject: defaultSubject, body: "", error: "credits" }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -70,15 +75,14 @@ Réponds UNIQUEMENT avec un JSON valide au format :
 
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || "";
-    
-    // Parse JSON from AI response (handle markdown code blocks)
+
     let parsed: { subject: string; body: string };
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
       parsed = {
-        subject: `Devis ${companyName} — ${eventName || "votre événement"}`,
+        subject: defaultSubject,
         body: content,
       };
     }
