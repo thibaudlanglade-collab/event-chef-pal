@@ -624,6 +624,209 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_cards: {
+        Row: {
+          amount: number | null
+          client_id: string
+          created_at: string | null
+          entered_stage_at: string | null
+          event_id: string | null
+          id: string
+          last_contacted_at: string | null
+          notes: string | null
+          quote_id: string | null
+          stage_id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          client_id: string
+          created_at?: string | null
+          entered_stage_at?: string | null
+          event_id?: string | null
+          id?: string
+          last_contacted_at?: string | null
+          notes?: string | null
+          quote_id?: string | null
+          stage_id: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          client_id?: string
+          created_at?: string | null
+          entered_stage_at?: string | null
+          event_id?: string | null
+          id?: string
+          last_contacted_at?: string | null
+          notes?: string | null
+          quote_id?: string | null
+          stage_id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_cards_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_cards_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_cards_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_cards_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_followup_templates: {
+        Row: {
+          body_template: string
+          created_at: string | null
+          id: string
+          stage_id: string
+          subject_template: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          body_template?: string
+          created_at?: string | null
+          id?: string
+          stage_id: string
+          subject_template?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          body_template?: string
+          created_at?: string | null
+          id?: string
+          stage_id?: string
+          subject_template?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_followup_templates_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_history: {
+        Row: {
+          card_id: string
+          from_stage_id: string | null
+          id: string
+          moved_at: string | null
+          moved_by: string | null
+          note: string | null
+          to_stage_id: string
+        }
+        Insert: {
+          card_id: string
+          from_stage_id?: string | null
+          id?: string
+          moved_at?: string | null
+          moved_by?: string | null
+          note?: string | null
+          to_stage_id: string
+        }
+        Update: {
+          card_id?: string
+          from_stage_id?: string | null
+          id?: string
+          moved_at?: string | null
+          moved_by?: string | null
+          note?: string | null
+          to_stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_history_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          alert_threshold_days: number | null
+          color: string
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          position: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_threshold_days?: number | null
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          position?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_threshold_days?: number | null
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          position?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       quotes: {
         Row: {
           client_id: string | null
@@ -680,6 +883,56 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_followups: {
+        Row: {
+          cancelled_at: string | null
+          card_id: string
+          created_at: string | null
+          email_body: string
+          email_subject: string
+          email_to: string
+          id: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          card_id: string
+          created_at?: string | null
+          email_body: string
+          email_subject: string
+          email_to: string
+          id?: string
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          card_id?: string
+          created_at?: string | null
+          email_body?: string
+          email_subject?: string
+          email_to?: string
+          id?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_followups_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_cards"
             referencedColumns: ["id"]
           },
         ]
