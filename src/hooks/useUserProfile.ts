@@ -23,12 +23,32 @@ export function useUserProfile() {
   return useQuery({
     queryKey: ["user_profile", user?.id],
     queryFn: async () => {
+      // Try to fetch existing profile
       const { data, error } = await supabase
         .from("user_profiles")
         .select("*")
         .eq("user_id", user!.id)
-        .single();
+        .maybeSingle();
+
       if (error) throw error;
+
+      // Auto-create profile if missing
+      if (!data) {
+        const { data: newProfile, error: insertError } = await supabase
+          .from("user_profiles")
+          .insert({
+            user_id: user!.id,
+            company_name: "",
+            first_name: "",
+            last_name: "",
+            email: user!.email || "",
+          } as any)
+          .select()
+          .single();
+        if (insertError) throw insertError;
+        return newProfile as UserProfile;
+      }
+
       return data as UserProfile;
     },
     enabled: !!user,
