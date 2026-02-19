@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_items: {
+        Row: {
+          category: string
+          created_at: string
+          default_tva: number
+          description: string | null
+          id: string
+          internal_cost: number
+          is_active: boolean
+          margin_percent: number
+          name: string
+          pricing_type: string
+          sale_price: number | null
+          unit: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          default_tva?: number
+          description?: string | null
+          id?: string
+          internal_cost?: number
+          is_active?: boolean
+          margin_percent?: number
+          name: string
+          pricing_type?: string
+          sale_price?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_tva?: number
+          description?: string | null
+          id?: string
+          internal_cost?: number
+          is_active?: boolean
+          margin_percent?: number
+          name?: string
+          pricing_type?: string
+          sale_price?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       checklist_templates: {
         Row: {
           created_at: string | null
