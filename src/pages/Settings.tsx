@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { Settings as SettingsIcon, Webhook, CheckCircle, XCircle, LogOut, Mail, HelpCircle, Shield } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings as SettingsIcon, Webhook, CheckCircle, XCircle, LogOut, Mail, HelpCircle, Shield, Package } from "lucide-react";
 import { useWebhookConfigs, useUpsertWebhook } from "@/hooks/useSupabase";
 import { useOAuthToken, useDeleteOAuthToken, useEmailSettings, useUpdateEmailSettings } from "@/hooks/useEmails";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import CatalogSettings from "@/components/settings/CatalogSettings";
 
 const webhookFeatures = [
   { key: "mail_triage", label: "Triage des mails (legacy)", description: "Ancien système via webhook n8n" },
@@ -91,7 +93,19 @@ const SettingsPage = () => {
 
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto space-y-6">
-      <div><h1 className="text-2xl font-bold">Paramètres</h1><p className="text-muted-foreground text-sm">Configurez votre compte, votre boîte mail, vos webhooks et vos automatisations.</p></div>
+      <div><h1 className="text-2xl font-bold">Paramètres</h1><p className="text-muted-foreground text-sm">Configurez votre compte, votre catalogue, vos webhooks et vos automatisations.</p></div>
+
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="general" className="gap-1.5"><SettingsIcon className="h-3.5 w-3.5" /> Général</TabsTrigger>
+          <TabsTrigger value="catalog" className="gap-1.5"><Package className="h-3.5 w-3.5" /> Catalogue</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="catalog">
+          <CatalogSettings />
+        </TabsContent>
+
+        <TabsContent value="general" className="space-y-6">
 
       {/* Account */}
       <Card className="rounded-2xl">
@@ -219,6 +233,8 @@ const SettingsPage = () => {
           })}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
