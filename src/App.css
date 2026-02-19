@@ -40,3 +40,20 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Hide Lovable badge */
+[href*="lovable.dev"],
+[href*="lovable.ai"],
+div:has(> a[href*="lovable"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Hide Spline badge */
+[href*="spline.design"],
+div:has(> a[href*="spline"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
