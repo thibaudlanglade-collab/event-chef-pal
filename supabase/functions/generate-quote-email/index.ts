@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const { companyName, clientName, eventName, eventDate, totalTTC, guestCount } = await req.json();
+    const { companyName, clientName, eventName, eventDate, totalTTC, guestCount, senderName } = await req.json();
 
     const defaultSubject = `DEVIS ${(companyName || "").toUpperCase()}${eventName ? ` - ${eventName}` : ""}${eventDate ? ` - ${eventDate}` : ""}`;
 
@@ -21,6 +21,7 @@ Deno.serve(async (req) => {
 
 Contexte :
 - Entreprise : ${companyName}
+- Expéditeur (nom de la personne) : ${senderName || companyName || "L'équipe"}
 - Client : ${clientName}
 - Événement : ${eventName || "non précisé"}
 - Date : ${eventDate || "non précisée"}
@@ -29,12 +30,12 @@ Contexte :
 
 Consignes STRICTES :
 - Ton B2B factuel et direct. PAS de formules enthousiastes ("C'est un plaisir", "expérience culinaire mémorable", etc.)
-- Maximum 4 phrases pour le corps du mail
+- Maximum 4-5 phrases pour le corps du mail
 - Commence par "Bonjour" suivi du nom du client si disponible
 - Mentionne le montant et la date si disponibles
-- Termine par "Nous restons à votre disposition pour tout ajustement." ou équivalent sobre
-- NE PAS inclure de signature
-- L'objet doit suivre le format : DEVIS [NOM_ENTREPRISE] - [NOM_EVENEMENT] - [DATE]
+- Termine par "Nous restons à votre disposition pour tout ajustement."
+- INCLURE une signature propre avec "Cordialement," suivi du nom de l'expéditeur et le nom de l'entreprise sur la ligne suivante
+- L'objet doit suivre le format : DEVIS [NOM_ENTREPRISE EN MAJUSCULES] - [NOM_EVENEMENT] - [DATE]
 - Si l'événement ou la date ne sont pas précisés, les omettre de l'objet
 
 Réponds UNIQUEMENT avec un JSON valide au format :

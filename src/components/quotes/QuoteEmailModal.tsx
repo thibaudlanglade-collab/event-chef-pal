@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -19,30 +19,38 @@ interface Props {
   eventDate?: string;
   totalTTC: number;
   guestCount?: number;
+  senderName?: string;
   onEmailSent: () => void;
 }
 
 export default function QuoteEmailModal({
   open, onClose, clientEmail, clientName, companyName,
-  eventName, eventDate, totalTTC, guestCount, onEmailSent,
+  eventName, eventDate, totalTTC, guestCount, senderName, onEmailSent,
 }: Props) {
   const [to, setTo] = useState(clientEmail || "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [subjectIsAi, setSubjectIsAi] = useState(false);
-  const [bodyIsAi, setBodyIsAi] = useState(false);
+  const [isAiContent, setIsAiContent] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
 
   const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const handleOpenChange = (v: boolean) => {
-    if (v) {
+  // Auto-generate when modal opens
+  useEffect(() => {
+    if (open && !hasGenerated) {
       setTo(clientEmail || "");
-      if (!subject && !body) generateWithAI();
+      generateWithAI();
     }
-    if (!v) onClose();
-  };
+    if (!open) {
+      // Reset state when closing
+      setHasGenerated(false);
+      setSubject("");
+      setBody("");
+      setIsAiContent(false);
+    }
+  }, [open]);
 
   const generateWithAI = async () => {
     setAiLoading(true);
@@ -55,24 +63,33 @@ export default function QuoteEmailModal({
           eventDate: eventDate || "",
           totalTTC: fmt(totalTTC),
           guestCount: guestCount || 0,
+          senderName: senderName || "",
         },
       });
       if (error) throw error;
-      if (data?.subject) { setSubject(data.subject); setSubjectIsAi(true); }
-      if (data?.body) { setBody(data.body); setBodyIsAi(true); }
+      if (data?.subject) setSubject(data.subject);
+      if (data?.body) setBody(data.body);
+      setIsAiContent(true);
+      setHasGenerated(true);
     } catch (e: any) {
       console.error("AI generation error:", e);
       const defaultSubject = `DEVIS ${(companyName || "").toUpperCase()}${eventName ? ` - ${eventName}` : ""}${eventDate ? ` - ${eventDate}` : ""}`;
       setSubject(defaultSubject);
-      setSubjectIsAi(false);
       setBody(
-        `Bonjour${clientName ? ` ${clientName}` : ""},\n\nVeuillez trouver ci-joint notre devis d'un montant de ${fmt(totalTTC)} € TTC${eventName ? ` pour ${eventName}` : ""}${eventDate ? ` prévu le ${eventDate}` : ""}.\n\nNous restons à votre disposition pour tout ajustement.\n\nCordialement,\n${companyName || ""}`
+        `Bonjour${clientName ? ` ${clientName}` : ""},\n\nVeuillez trouver ci-joint notre devis d'un montant de ${fmt(totalTTC)} € TTC${eventName ? ` pour ${eventName}` : ""}${eventDate ? ` prévu le ${eventDate}` : ""}.\n\nNous restons à votre disposition pour tout ajustement.\n\nCordialement,\n${senderName || companyName || ""}`
       );
-      setBodyIsAi(false);
+      setIsAiContent(false);
+      setHasGenerated(true);
       toast.error("Suggestion IA indisponible, modèle par défaut utilisé");
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const handleClearForManual = () => {
+    setSubject("");
+    setBody("");
+    setIsAiContent(false);
   };
 
   const handleSend = async () => {
@@ -100,7 +117,7 @@ export default function QuoteEmailModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg border border-border/50 rounded-xl shadow-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
@@ -125,9 +142,9 @@ export default function QuoteEmailModal({
             <Input
               placeholder="Objet du mail…"
               value={subject}
-              onChange={(e) => { setSubject(e.target.value); setSubjectIsAi(false); }}
-              onFocus={() => setSubjectIsAi(false)}
-              className={cn("mt-1.5 transition-colors", subjectIsAi && "text-primary")}
+              onChange={(e) => setSubject(e.target.value)}
+              className={cn("mt-1.5 transition-colors", isAiContent && "text-primary")}
+              onFocus={() => setIsAiContent(false)}
             />
           </div>
 
@@ -136,14 +153,11 @@ export default function QuoteEmailModal({
             <Textarea
               placeholder="Corps du mail…"
               value={body}
-              onChange={(e) => { setBody(e.target.value); setBodyIsAi(false); }}
-              onFocus={() => setBodyIsAi(false)}
+              onChange={(e) => setBody(e.target.value)}
+              onFocus={() => setIsAiContent(false)}
               rows={10}
-              className={cn("mt-1.5 transition-colors", bodyIsAi && "text-primary")}
+              className={cn("mt-1.5 transition-colors", isAiContent && "text-primary")}
             />
-            {(subjectIsAi || bodyIsAi) && (
-              <p className="text-[10px] text-primary mt-1.5">Suggestion IA — cliquez pour modifier librement</p>
-            )}
           </div>
 
           {aiLoading && (
@@ -153,12 +167,29 @@ export default function QuoteEmailModal({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={onClose}>Annuler</Button>
-            <Button variant="accent" className="gap-2" onClick={handleSend} disabled={sending || !to}>
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              {sending ? "Envoi…" : "Envoyer"}
+          {isAiContent && !aiLoading && (
+            <p className="text-[11px] text-primary/70">
+              ✨ Suggestion rédigée par IA — vous pouvez la modifier librement ou tout effacer ci-dessous.
+            </p>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs text-muted-foreground h-8"
+              onClick={handleClearForManual}
+              disabled={aiLoading}
+            >
+              <PenLine className="h-3 w-3" /> Écrire manuellement
             </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose}>Annuler</Button>
+              <Button variant="accent" className="gap-2" onClick={handleSend} disabled={sending || !to}>
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {sending ? "Envoi…" : "Envoyer"}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
