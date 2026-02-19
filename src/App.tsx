@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
+import SplashScreen from "./components/SplashScreen";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -33,39 +35,59 @@ const ProtectedLayout = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute><Layout>{children}</Layout></ProtectedRoute>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-            <Route path="/calendar" element={<ProtectedLayout><Calendar /></ProtectedLayout>} />
-            <Route path="/quotes" element={<ProtectedLayout><Quotes /></ProtectedLayout>} />
-            <Route path="/my-teams" element={<ProtectedLayout><MyTeams /></ProtectedLayout>} />
-            <Route path="/announcements" element={<ProtectedLayout><Announcements /></ProtectedLayout>} />
-            <Route path="/stock" element={<ProtectedLayout><Stock /></ProtectedLayout>} />
-            <Route path="/mail" element={<ProtectedLayout><MailPage /></ProtectedLayout>} />
-            <Route path="/emails/history" element={<ProtectedLayout><EmailHistory /></ProtectedLayout>} />
-            <Route path="/settings" element={<ProtectedLayout><SettingsPage /></ProtectedLayout>} />
-            <Route path="/settings/checklist-templates" element={<ProtectedLayout><ChecklistTemplates /></ProtectedLayout>} />
-            <Route path="/crm" element={<ProtectedLayout><CRM /></ProtectedLayout>} />
-            <Route path="/suppliers" element={<ProtectedLayout><Suppliers /></ProtectedLayout>} />
-            <Route path="/brief" element={<ProtectedLayout><Brief /></ProtectedLayout>} />
-            <Route path="/event-dossier" element={<ProtectedLayout><EventDossier /></ProtectedLayout>} />
-            <Route path="/confirm/:sessionId" element={<Confirm />} />
-            <Route path="/auth/callback/google" element={<ProtectedRoute><GoogleOAuthCallback /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(false);
+
+  useEffect(() => {
+    const hasSeenSplash = localStorage.getItem("caterpilot_has_seen_splash");
+    if (!hasSeenSplash) {
+      setShowSplash(true);
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    localStorage.setItem("caterpilot_has_seen_splash", "true");
+  };
+
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+              <Route path="/calendar" element={<ProtectedLayout><Calendar /></ProtectedLayout>} />
+              <Route path="/quotes" element={<ProtectedLayout><Quotes /></ProtectedLayout>} />
+              <Route path="/my-teams" element={<ProtectedLayout><MyTeams /></ProtectedLayout>} />
+              <Route path="/announcements" element={<ProtectedLayout><Announcements /></ProtectedLayout>} />
+              <Route path="/stock" element={<ProtectedLayout><Stock /></ProtectedLayout>} />
+              <Route path="/mail" element={<ProtectedLayout><MailPage /></ProtectedLayout>} />
+              <Route path="/emails/history" element={<ProtectedLayout><EmailHistory /></ProtectedLayout>} />
+              <Route path="/settings" element={<ProtectedLayout><SettingsPage /></ProtectedLayout>} />
+              <Route path="/settings/checklist-templates" element={<ProtectedLayout><ChecklistTemplates /></ProtectedLayout>} />
+              <Route path="/crm" element={<ProtectedLayout><CRM /></ProtectedLayout>} />
+              <Route path="/suppliers" element={<ProtectedLayout><Suppliers /></ProtectedLayout>} />
+              <Route path="/brief" element={<ProtectedLayout><Brief /></ProtectedLayout>} />
+              <Route path="/event-dossier" element={<ProtectedLayout><EventDossier /></ProtectedLayout>} />
+              <Route path="/confirm/:sessionId" element={<Confirm />} />
+              <Route path="/auth/callback/google" element={<ProtectedRoute><GoogleOAuthCallback /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
