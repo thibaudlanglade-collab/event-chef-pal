@@ -6,12 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, FileDown, Link2, Save, Users, Calendar, Package, UserPlus, CalendarPlus } from "lucide-react";
+import { Plus, Trash2, FileDown, Link2, Save, Users, Calendar, Package, UserPlus, CalendarPlus, Eye, Mail } from "lucide-react";
 import { useClients, useEvents, useCreateQuote } from "@/hooks/useSupabase";
 import { CATALOG_CATEGORIES, PRICING_TYPES, type CatalogItem } from "@/hooks/useCatalog";
 import CatalogModal from "@/components/quotes/CatalogModal";
 import CreateClientModal from "@/components/quotes/CreateClientModal";
 import CreateEventModal from "@/components/quotes/CreateEventModal";
+import QuotePreviewModal from "@/components/quotes/QuotePreviewModal";
+import QuoteEmailModal from "@/components/quotes/QuoteEmailModal";
+import CrmSaveDialog from "@/components/quotes/CrmSaveDialog";
 import QuotePdfDocument, { type PdfQuoteItem, type CompanyInfo } from "@/components/quotes/QuotePdfDocument";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { cn } from "@/lib/utils";
@@ -54,7 +57,9 @@ const Quotes = () => {
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [eventModalOpen, setEventModalOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
-
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [crmOpen, setCrmOpen] = useState(false);
   const event = events?.find((e) => e.id === selectedEvent);
 
   // Sync guest count when event changes
@@ -367,11 +372,11 @@ const Quotes = () => {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            <Button variant="accent" className="gap-2" onClick={handlePdf} disabled={pdfLoading}>
-              <FileDown className="h-4 w-4" /> {pdfLoading ? "Génération…" : "Générer PDF"}
+            <Button variant="accent" className="gap-2" onClick={() => setPreviewOpen(true)} disabled={items.length === 0}>
+              <Eye className="h-4 w-4" /> Voir le devis
             </Button>
-            <Button variant="outline" className="gap-2" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/q/preview`); toast.success("Lien copié !"); }}>
-              <Link2 className="h-4 w-4" /> Copier le lien
+            <Button variant="outline" className="gap-2" onClick={handlePdf} disabled={pdfLoading}>
+              <FileDown className="h-4 w-4" /> {pdfLoading ? "Génération…" : "Générer PDF"}
             </Button>
             <Button variant="outline" className="gap-2" onClick={() => handleSave("draft")} disabled={createQuote.isPending}>
               <Save className="h-4 w-4" /> {createQuote.isPending ? "Sauvegarde…" : "Sauvegarder brouillon"}
@@ -414,6 +419,53 @@ const Quotes = () => {
       <CatalogModal open={catalogOpen} onClose={() => setCatalogOpen(false)} onSelectMultiple={addCatalogItems} guestCount={guestCount} />
       <CreateClientModal open={clientModalOpen} onClose={() => setClientModalOpen(false)} onCreated={(id) => setSelectedClient(id)} />
       <CreateEventModal open={eventModalOpen} onClose={() => setEventModalOpen(false)} onCreated={(id, gc) => { setSelectedEvent(id); if (gc) handleGuestCountChange(gc); }} />
+      
+      <QuotePreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        items={items}
+        onItemsChange={setItems}
+        clientName={clients?.find((c) => c.id === selectedClient)?.name}
+        eventName={event?.name}
+        eventDate={event?.date ? new Date(event.date).toLocaleDateString("fr-FR") : undefined}
+        guestCount={guestCount || undefined}
+        notes={notes}
+        onNotesChange={setNotes}
+        depositPercent={depositPercent}
+        discountPercent={discountPercent}
+        company={{
+          companyName: profile?.company_name,
+          address: profile?.address ?? undefined,
+          siret: profile?.siret ?? undefined,
+          phone: profile?.phone || undefined,
+          email: profile?.email,
+          logoUrl: profile?.logo_url ?? undefined,
+          quoteValidityDays: profile?.quote_validity_days ?? 30,
+        }}
+        onDownloadPdf={() => { setPreviewOpen(false); handlePdf().then(() => setCrmOpen(true)); }}
+        onSendEmail={() => { setPreviewOpen(false); setEmailOpen(true); }}
+        pdfLoading={pdfLoading}
+      />
+
+      <QuoteEmailModal
+        open={emailOpen}
+        onClose={() => setEmailOpen(false)}
+        clientEmail={clients?.find((c) => c.id === selectedClient)?.email || ""}
+        clientName={clients?.find((c) => c.id === selectedClient)?.name}
+        companyName={profile?.company_name}
+        eventName={event?.name}
+        eventDate={event?.date ? new Date(event.date).toLocaleDateString("fr-FR") : undefined}
+        totalTTC={totalTTC}
+        guestCount={guestCount || undefined}
+        onEmailSent={() => setCrmOpen(true)}
+      />
+
+      <CrmSaveDialog
+        open={crmOpen}
+        onClose={() => setCrmOpen(false)}
+        onSave={() => { handleSave("sent"); setCrmOpen(false); }}
+        saving={createQuote.isPending}
+      />
     </div>
   );
 };
