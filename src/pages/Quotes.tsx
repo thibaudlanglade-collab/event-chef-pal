@@ -451,6 +451,7 @@ const Quotes = () => {
         eventDate={event?.date ? new Date(event.date).toLocaleDateString("fr-FR") : undefined}
         totalTTC={totalTTC}
         guestCount={guestCount || undefined}
+        senderName={profile ? `${profile.first_name} ${profile.last_name}`.trim() || profile.company_name : undefined}
         onEmailSent={() => setCrmOpen(true)}
       />
 
