@@ -11,7 +11,8 @@ import { useClients, useEvents, useCreateQuote } from "@/hooks/useSupabase";
 import { CATALOG_CATEGORIES, PRICING_TYPES, type CatalogItem } from "@/hooks/useCatalog";
 import { quoteTemplates, type TemplateItem } from "@/data/quoteTemplates";
 import CatalogModal from "@/components/quotes/CatalogModal";
-import QuotePdfDocument, { type PdfQuoteItem } from "@/components/quotes/QuotePdfDocument";
+import QuotePdfDocument, { type PdfQuoteItem, type CompanyInfo } from "@/components/quotes/QuotePdfDocument";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { pdf } from "@react-pdf/renderer";
@@ -40,12 +41,15 @@ const Quotes = () => {
   const { data: events, isLoading: eLoading } = useEvents();
   const createQuote = useCreateQuote();
 
+  const { data: profile } = useUserProfile();
+
   const [items, setItems] = useState<QuoteItem[]>([emptyItem()]);
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedEvent, setSelectedEvent] = useState("");
   const [guestCount, setGuestCount] = useState(0);
   const [notes, setNotes] = useState("");
   const [depositPercent, setDepositPercent] = useState(30);
+  const [discountPercent, setDiscountPercent] = useState(0);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -110,6 +114,9 @@ const Quotes = () => {
 
   const totalHT = useMemo(() => items.reduce((s, i) => s + i.qty * i.unitPrice, 0), [items]);
 
+  const discountAmount = useMemo(() => totalHT * (discountPercent / 100), [totalHT, discountPercent]);
+  const totalHTAfterDiscount = totalHT - discountAmount;
+
   const tvaBreakdown = useMemo(() => {
     const bd: Record<number, number> = {};
     items.forEach((i) => {
@@ -119,8 +126,8 @@ const Quotes = () => {
     return bd;
   }, [items]);
 
-  const totalTva = useMemo(() => Object.values(tvaBreakdown).reduce((s, v) => s + v, 0), [tvaBreakdown]);
-  const totalTTC = totalHT + totalTva;
+  const totalTva = useMemo(() => Object.values(tvaBreakdown).reduce((s, v) => s + v, 0) * (1 - discountPercent / 100), [tvaBreakdown, discountPercent]);
+  const totalTTC = totalHTAfterDiscount + totalTva;
   const deposit = totalTTC * (depositPercent / 100);
 
   const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -151,6 +158,15 @@ const Quotes = () => {
         qty: i.qty, unitPrice: i.unitPrice, tva: i.tva, pricingType: i.pricingType,
       }));
       const client = clients?.find((c) => c.id === selectedClient);
+      const companyInfo: CompanyInfo = {
+        companyName: profile?.company_name,
+        address: (profile as any)?.address,
+        siret: (profile as any)?.siret,
+        phone: profile?.phone || undefined,
+        email: profile?.email,
+        logoUrl: (profile as any)?.logo_url,
+        quoteValidityDays: (profile as any)?.quote_validity_days ?? 30,
+      };
       const blob = await pdf(
         <QuotePdfDocument
           items={pdfItems}
@@ -160,6 +176,8 @@ const Quotes = () => {
           guestCount={guestCount || undefined}
           notes={notes}
           depositPercent={depositPercent}
+          discountPercent={discountPercent}
+          company={companyInfo}
         />
       ).toBlob();
       const url = URL.createObjectURL(blob);
@@ -313,13 +331,28 @@ const Quotes = () => {
               {/* Summary */}
               <div className="mt-4 border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total HT</span>
+                  <span className="text-muted-foreground">Sous-total HT</span>
                   <span className="font-medium tabular-nums">{fmt(totalHT)} €</span>
                 </div>
+                {/* Discount */}
+                <div className="flex justify-between text-sm items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Remise</span>
+                    <Input type="number" min={0} max={100} value={discountPercent} onChange={(e) => setDiscountPercent(Number(e.target.value))} className="h-7 w-16 text-right text-xs" />
+                    <span className="text-muted-foreground text-xs">%</span>
+                  </div>
+                  {discountPercent > 0 && <span className="font-medium tabular-nums text-destructive">-{fmt(discountAmount)} €</span>}
+                </div>
+                {discountPercent > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total HT après remise</span>
+                    <span className="font-medium tabular-nums">{fmt(totalHTAfterDiscount)} €</span>
+                  </div>
+                )}
                 {Object.entries(tvaBreakdown).map(([rate, amount]) => (
                   <div key={rate} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">TVA {rate}%</span>
-                    <span className="tabular-nums">{fmt(amount)} €</span>
+                    <span className="tabular-nums">{fmt(amount * (1 - discountPercent / 100))} €</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-base font-bold pt-2 border-t">
@@ -381,7 +414,8 @@ const Quotes = () => {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Résumé</p>
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Lignes</span><span className="font-medium">{items.length}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span className="font-medium tabular-nums">{fmt(totalHT)} €</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Sous-total HT</span><span className="font-medium tabular-nums">{fmt(totalHT)} €</span></div>
+                {discountPercent > 0 && <div className="flex justify-between text-destructive"><span>Remise ({discountPercent}%)</span><span className="tabular-nums">-{fmt(discountAmount)} €</span></div>}
                 <div className="flex justify-between"><span className="text-muted-foreground">TVA</span><span className="font-medium tabular-nums">{fmt(totalTva)} €</span></div>
                 <div className="flex justify-between font-bold text-base border-t pt-2"><span>TTC</span><span className="tabular-nums">{fmt(totalTTC)} €</span></div>
                 <div className="flex justify-between text-xs"><span className="text-muted-foreground">Acompte ({depositPercent}%)</span><span className="tabular-nums">{fmt(deposit)} €</span></div>
