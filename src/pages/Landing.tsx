@@ -71,12 +71,13 @@ const Landing = () => {
               </p>
 
               {/* Spline Robot — visible on mobile between text and buttons */}
-              <div className="relative w-full h-[350px] lg:hidden">
+              <div className="relative w-full h-[350px] lg:hidden overflow-hidden">
                 {/* @ts-ignore */}
                 <spline-viewer
                   url="https://prod.spline.design/XeeA0FbGSlUxmOGI/scene.splinecode"
                   style={{ width: '100%', height: '100%' }}
                 />
+                <div className="absolute bottom-0 right-0 w-40 h-12 bg-secondary/30 backdrop-blur-none" style={{ background: 'hsl(var(--secondary) / 0.3)' }} />
               </div>
 
               <div className="flex flex-col sm:flex-row items-start gap-4">
@@ -112,12 +113,13 @@ const Landing = () => {
             </div>
 
             {/* Right: Spline Robot — desktop only */}
-            <div className="relative w-full h-[600px] hidden lg:block">
+            <div className="relative w-full h-[600px] hidden lg:block overflow-hidden">
               {/* @ts-ignore */}
               <spline-viewer
                 url="https://prod.spline.design/XeeA0FbGSlUxmOGI/scene.splinecode"
                 style={{ width: '100%', height: '100%' }}
               />
+              <div className="absolute bottom-0 right-0 w-40 h-12" style={{ background: 'hsl(var(--secondary) / 0.3)' }} />
             </div>
           </div>
         </div>
