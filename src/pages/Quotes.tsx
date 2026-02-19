@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, FileDown, Link2, Save, Users, Calendar, Package, UserPlus, CalendarPlus, Eye, Mail } from "lucide-react";
+import { Plus, Trash2, FileDown, Users, Calendar, Package, UserPlus, CalendarPlus, Eye } from "lucide-react";
 import { useClients, useEvents, useCreateQuote } from "@/hooks/useSupabase";
 import { CATALOG_CATEGORIES, PRICING_TYPES, type CatalogItem } from "@/hooks/useCatalog";
 import CatalogModal from "@/components/quotes/CatalogModal";
@@ -371,15 +371,9 @@ const Quotes = () => {
           </Card>
 
           {/* Actions */}
-          <div className="flex flex-wrap gap-2">
-            <Button variant="accent" className="gap-2" onClick={() => setPreviewOpen(true)} disabled={items.length === 0}>
+          <div className="flex justify-center pt-2">
+            <Button variant="accent" size="lg" className="gap-2 px-10" onClick={() => setPreviewOpen(true)} disabled={items.length === 0}>
               <Eye className="h-4 w-4" /> Voir le devis
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={handlePdf} disabled={pdfLoading}>
-              <FileDown className="h-4 w-4" /> {pdfLoading ? "Génération…" : "Générer PDF"}
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={() => handleSave("draft")} disabled={createQuote.isPending}>
-              <Save className="h-4 w-4" /> {createQuote.isPending ? "Sauvegarde…" : "Sauvegarder brouillon"}
             </Button>
           </div>
         </div>
