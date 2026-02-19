@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.refresh-email-tokens]
 verify_jwt = false
+
+[functions.generate-quote-email]
+verify_jwt = false
