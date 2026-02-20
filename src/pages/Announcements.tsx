@@ -1,91 +1,167 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, Users, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTeamMembers, useEvents, useCreateTeamMember, useQuotes } from "@/hooks/useSupabase";
 import {
-  Plus, Phone, UserCheck, MessageSquare, X, Copy, ExternalLink,
-  CheckCircle, XCircle, Clock, AlertTriangle, Users, RefreshCw, User
-} from "lucide-react";
-import { useTeamMembers, useEvents, useCreateTeamMember, useEventStaff } from "@/hooks/useSupabase";
-import {
-  useTeamReliability, useCreateConfirmationSession, useConfirmationRequestsByEvent,
-  useUpdateConfirmationStatus, useExistingConfirmations, useConfirmationSessions
-} from "@/hooks/useConfirmations";
-import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
+  useRhSettings, useEventStaffExtended, useAddEventStaff,
+  useUpdateEventStaffStatus, useTeamStats, calculateStaffNeeds, useMarkStaffSent,
+} from "@/hooks/useHrModule";
+import EventHeader from "@/components/hr/EventHeader";
+import HrGauges from "@/components/hr/HrGauges";
+import CandidateList from "@/components/hr/CandidateList";
+import ConfirmedTeam from "@/components/hr/ConfirmedTeam";
+import WhatsAppEditorModal from "@/components/hr/WhatsAppEditorModal";
+import FollowUpPanel from "@/components/hr/FollowUpPanel";
+import ReplacementSuggestions from "@/components/hr/ReplacementSuggestions";
 import { toast } from "sonner";
 
-const ROLES = ["Serveur", "Serveuse", "Chef", "Cuisinier", "Décorateur", "Autre"];
+const ROLES_MAP = [
+  { key: "serveurs", label: "Serveurs", icon: "🍽", matchRoles: ["serveur", "serveuse"] },
+  { key: "chefs", label: "Chefs", icon: "👨‍🍳", matchRoles: ["chef", "cuisinier"] },
+  { key: "barmans", label: "Barmans", icon: "🍸", matchRoles: ["barman", "barmaid"] },
+  { key: "maitre_hotel", label: "Maître d'hôtel", icon: "🎩", matchRoles: ["maître d'hôtel", "maitre", "maître"] },
+];
 
-const Team = () => {
+const ROLE_OPTIONS = ["Serveur", "Serveuse", "Chef", "Cuisinier", "Barman", "Maître d'hôtel", "Décorateur", "Autre"];
+
+const Announcements = () => {
   const [searchParams] = useSearchParams();
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(searchParams.get("event") || "");
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [generatedSession, setGeneratedSession] = useState<any>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [whatsAppTarget, setWhatsAppTarget] = useState<{ member: any; role: string } | null>(null);
   const [newMember, setNewMember] = useState({ name: "", phone: "", role: "", hourly_rate: 0, skills: "" });
 
   const { data: members, isLoading } = useTeamMembers();
   const { data: events } = useEvents();
-  const { data: reliability } = useTeamReliability();
-  const { data: confirmationRequests, refetch: refetchRequests } = useConfirmationRequestsByEvent(selectedEvent || undefined);
-  const { data: sessions } = useConfirmationSessions(selectedEvent || undefined);
+  const { data: quotes } = useQuotes();
+  const { data: rhSettings } = useRhSettings();
+  const { data: eventStaff } = useEventStaffExtended(selectedEvent || undefined);
+  const { data: teamStats } = useTeamStats();
+  const addStaff = useAddEventStaff();
+  const updateStatus = useUpdateEventStaffStatus();
+  const markSent = useMarkStaffSent();
   const createMember = useCreateTeamMember();
-  const createSession = useCreateConfirmationSession();
-  const updateStatus = useUpdateConfirmationStatus();
 
   const selectedEventData = events?.find((e) => e.id === selectedEvent);
-  const { data: existingConfirmations } = useExistingConfirmations(selectedEventData?.date);
+  const eventQuote = quotes?.find((q: any) => q.event_id === selectedEvent);
 
-  const activeEvents = events?.filter((e) => ["confirmed", "appointment", "in_progress", "prospect", "quote_sent"].includes(e.status)) || [];
-
-  // Realtime subscription for confirmation_requests
-  useEffect(() => {
-    if (!selectedEvent) return;
-    const channel = supabase
-      .channel("confirmation_requests_realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "confirmation_requests" }, () => {
-        refetchRequests();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [selectedEvent, refetchRequests]);
-
-  // Sort members by reliability
-  const sortedMembers = useMemo(() => {
-    if (!members) return [];
-    return [...members].sort((a, b) => {
-      const ra = reliability?.[a.id];
-      const rb = reliability?.[b.id];
-      const scoreA = ra && ra.total > 0 ? ra.confirmed / ra.total : 0.5;
-      const scoreB = rb && rb.total > 0 ? rb.confirmed / rb.total : 0.5;
-      return scoreB - scoreA;
-    });
-  }, [members, reliability]);
-
-  // Conflict detection
-  const getConflict = (memberId: string) => {
-    if (!existingConfirmations || !selectedEvent) return null;
-    const conflict = existingConfirmations.find(
-      (c) => c.team_member_id === memberId && c.event_id !== selectedEvent
+  // Calculate staff needs
+  const staffNeeds = useMemo(() => {
+    if (!selectedEventData || !rhSettings) return { serveurs: 0, chefs: 0, barmans: 0, maitre_hotel: 0 };
+    return calculateStaffNeeds(
+      selectedEventData.guest_count || 0,
+      selectedEventData.type,
+      rhSettings,
+      eventQuote as any
     );
-    return conflict;
+  }, [selectedEventData, rhSettings, eventQuote]);
+
+  // Group staff by role
+  const staffByRole = useMemo(() => {
+    const grouped: Record<string, any[]> = { serveurs: [], chefs: [], barmans: [], maitre_hotel: [] };
+    eventStaff?.forEach((s: any) => {
+      const role = (s.role_assigned || s.team_members?.role || "").toLowerCase();
+      for (const rm of ROLES_MAP) {
+        if (rm.matchRoles.some((r) => role.includes(r))) {
+          grouped[rm.key].push(s);
+          return;
+        }
+      }
+      // Default to serveurs
+      grouped.serveurs.push(s);
+    });
+    return grouped;
+  }, [eventStaff]);
+
+  // Count confirmed per role
+  const confirmedCounts = useMemo(() => {
+    const counts: Record<string, number> = { serveurs: 0, chefs: 0, barmans: 0, maitre_hotel: 0 };
+    Object.entries(staffByRole).forEach(([key, staff]) => {
+      counts[key] = staff.filter((s: any) => s.confirmation_status === "confirmed").length;
+    });
+    return counts;
+  }, [staffByRole]);
+
+  // Members grouped by role for candidate list
+  const membersByRole = useMemo(() => {
+    if (!members) return {};
+    const grouped: Record<string, any[]> = { serveurs: [], chefs: [], barmans: [], maitre_hotel: [] };
+    members.forEach((m: any) => {
+      const role = (m.role || "").toLowerCase();
+      for (const rm of ROLES_MAP) {
+        if (rm.matchRoles.some((r) => role.includes(r))) {
+          grouped[rm.key].push(m);
+          return;
+        }
+      }
+    });
+    return grouped;
+  }, [members]);
+
+  // Build categories for CandidateList
+  const categories = ROLES_MAP.map((rm) => ({
+    key: rm.key,
+    label: rm.label,
+    icon: rm.icon,
+    members: membersByRole[rm.key] || [],
+    staffEntries: staffByRole[rm.key] || [],
+    needed: staffNeeds[rm.key as keyof typeof staffNeeds],
+    confirmed: confirmedCounts[rm.key],
+  }));
+
+  // Confirmed team data
+  const confirmedTeamCategories = ROLES_MAP.map((rm) => ({
+    key: rm.key,
+    label: rm.label,
+    icon: rm.icon,
+    needed: staffNeeds[rm.key as keyof typeof staffNeeds],
+    confirmedMembers: (staffByRole[rm.key] || [])
+      .filter((s: any) => s.confirmation_status === "confirmed")
+      .map((s: any) => ({ id: s.team_member_id, name: s.team_members?.name || "Inconnu" })),
+  }));
+  const totalConfirmed = Object.values(confirmedCounts).reduce((a, b) => a + b, 0);
+  const totalNeeded = Object.values(staffNeeds).reduce((a, b) => a + b, 0);
+
+  // Pending staff for follow-ups
+  const pendingStaff = eventStaff?.filter((s: any) => s.confirmation_status === "pending" && s.sent_at) || [];
+
+  // Refused or expired staff for replacements
+  const refusedStaff = eventStaff?.filter((s: any) =>
+    s.confirmation_status === "refused" || s.confirmation_status === "declined"
+  ) || [];
+  const assignedIds = eventStaff?.map((s: any) => s.team_member_id) || [];
+
+  const activeEvents = events?.filter((e) =>
+    ["confirmed", "appointment", "in_progress", "prospect", "quote_sent"].includes(e.status)
+  ) || [];
+
+  const handleAddStaff = (memberId: string, role: string) => {
+    if (!selectedEvent) return;
+    const roleLabel = ROLES_MAP.find((r) => r.key === role)?.matchRoles[0] || role;
+    addStaff.mutate({ event_id: selectedEvent, team_member_id: memberId, role_assigned: roleLabel });
   };
 
-  const getReliabilityInfo = (memberId: string) => {
-    const r = reliability?.[memberId];
-    if (!r || r.total === 0) return { score: null, color: "text-muted-foreground", label: "Nouveau" };
-    const score = Math.round((r.confirmed / r.total) * 100);
-    if (score >= 70) return { score, color: "text-[hsl(var(--status-confirmed))]", label: `${score}% fiable` };
-    if (score >= 40) return { score, color: "text-[hsl(var(--status-quote-sent))]", label: `${score}% fiable` };
-    return { score, color: "text-destructive", label: `${score}% fiable` };
+  const handleConfirm = (staffId: string) => {
+    updateStatus.mutate({ id: staffId, status: "confirmed" });
+  };
+
+  const handleRefuse = (staffId: string) => {
+    updateStatus.mutate({ id: staffId, status: "refused" });
+  };
+
+  const handleWhatsApp = (member: any, role: string) => {
+    setWhatsAppTarget({ member, role });
+    // Also mark as sent
+    const staffEntry = eventStaff?.find((s: any) => s.team_member_id === member.id);
+    if (staffEntry && !staffEntry.sent_at) {
+      markSent.mutate(staffEntry.id);
+    }
   };
 
   const handleAddMember = () => {
@@ -96,343 +172,155 @@ const Team = () => {
     }, { onSuccess: () => { setShowAddModal(false); setNewMember({ name: "", phone: "", role: "", hourly_rate: 0, skills: "" }); } });
   };
 
-  const toggleMember = (id: string) => {
-    setSelectedMembers((prev) => prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]);
-  };
-
-  const handleGenerateWhatsApp = async () => {
-    if (!selectedEvent || selectedMembers.length === 0) return;
-    const session = await createSession.mutateAsync({ event_id: selectedEvent, team_member_ids: selectedMembers });
-    setGeneratedSession(session);
-    setShowWhatsAppModal(true);
-  };
-
-  const appUrl = window.location.origin;
-  const confirmLink = generatedSession ? `${appUrl}/confirm/${generatedSession.id}` : "";
-  const whatsappMessage = selectedEventData && generatedSession
-    ? `Bonjour l'équipe 👋\n\nCaterPilot recherche du personnel pour :\n📅 ${new Date(selectedEventData.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}\n📍 ${selectedEventData.venue || "Lieu à confirmer"}\n🍽️ ${selectedEventData.name}\n\nConfirmez votre disponibilité ici (2 secondes) :\n👉 ${confirmLink}\n\nMerci !`
-    : "";
-
-  const copyMessage = () => {
-    navigator.clipboard.writeText(whatsappMessage);
-    toast.success("Message copié !");
-  };
-
-  const openWhatsApp = () => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`, "_blank");
-  };
-
-  // Tracking stats
-  const confirmed = confirmationRequests?.filter((r) => r.status === "confirmed") || [];
-  const declined = confirmationRequests?.filter((r) => r.status === "declined") || [];
-  const pending = confirmationRequests?.filter((r) => r.status === "pending") || [];
-  const unidentified = confirmationRequests?.filter((r) => !r.team_member_id && r.status !== "pending") || [];
-
   if (isLoading) return <div className="p-8"><Skeleton className="h-96 w-full" /></div>;
 
   return (
-    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Annonces</h1>
-          <p className="text-muted-foreground text-sm">Sélectionnez un événement et des employés, puis générez un message WhatsApp avec lien de confirmation. Suivez les réponses en temps réel.</p>
+    <div className="min-h-screen bg-[#0F1117] -m-4 lg:-m-8 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-5">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-100" style={{ fontFamily: "Syne, sans-serif" }}>
+              Centre RH
+            </h1>
+            <p className="text-slate-400 text-sm">Pilotez vos équipes événementielles en temps réel.</p>
+          </div>
+          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2" onClick={() => setShowAddModal(true)}>
+            <Plus className="h-4 w-4" /> Ajouter un employé
+          </Button>
         </div>
-        <Button variant="accent" className="gap-2" onClick={() => setShowAddModal(true)}>
-          <Plus className="h-4 w-4" /> Ajouter un employé
-        </Button>
-      </div>
 
-      {/* Event selector */}
-      <Card className="rounded-2xl">
-        <CardContent className="p-4">
+        {/* Event selector */}
+        <div className="rounded-xl border border-[#2D3148] bg-[#1A1D27] p-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <Label className="text-sm font-medium shrink-0">Événement :</Label>
+            <Label className="text-sm font-medium text-slate-300 shrink-0">Événement :</Label>
             <select
-              className="w-full sm:w-80 h-10 px-3 rounded-lg border border-input bg-muted/30 text-sm"
+              className="w-full sm:w-96 h-10 px-3 rounded-lg border border-[#2D3148] bg-[#0F1117] text-slate-200 text-sm focus:ring-1 focus:ring-emerald-500/50 outline-none"
               value={selectedEvent}
-              onChange={(e) => { setSelectedEvent(e.target.value); setSelectedMembers([]); }}
+              onChange={(e) => setSelectedEvent(e.target.value)}
             >
               <option value="">— Choisir un événement —</option>
               {activeEvents.map((ev) => (
                 <option key={ev.id} value={ev.id}>
-                  {ev.name} ({new Date(ev.date).toLocaleDateString("fr-FR")})
+                  {ev.name} ({new Date(ev.date).toLocaleDateString("fr-FR")}) — {ev.guest_count || 0} convives
                 </option>
               ))}
             </select>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Two column layout when event selected */}
-      <div className={cn("grid gap-6", selectedEvent ? "lg:grid-cols-5" : "")}>
-        {/* Left: Team members */}
-        <div className={cn("space-y-4", selectedEvent ? "lg:col-span-3" : "")}>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            {selectedEvent ? "Équipe suggérée" : "Tous les employés"}
-            <Badge variant="secondary" className="text-xs">{members?.length || 0}</Badge>
-          </h2>
-
-          {(!members || members.length === 0) ? (
-            <Card className="p-8 text-center rounded-2xl">
-              <p className="text-muted-foreground">Aucun employé. Ajoutez votre premier collaborateur !</p>
-            </Card>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-3">
-              {sortedMembers.map((member, i) => {
-                const rel = getReliabilityInfo(member.id);
-                const conflict = getConflict(member.id);
-                const isSelected = selectedMembers.includes(member.id);
-                const hasConflict = !!conflict;
-
-                return (
-                  <Card
-                    key={member.id}
-                    className={cn(
-                      "transition-all animate-fade-in rounded-2xl cursor-pointer",
-                      isSelected && "ring-2 ring-primary/60 bg-primary/5",
-                      hasConflict && "opacity-60"
-                    )}
-                    style={{ animationDelay: `${i * 40}ms` }}
-                    onClick={() => !hasConflict && selectedEvent && toggleMember(member.id)}
-                  >
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          {selectedEvent && (
-                            <Checkbox
-                              checked={isSelected}
-                              disabled={hasConflict}
-                              onCheckedChange={() => !hasConflict && toggleMember(member.id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          )}
-                          <div>
-                            <h3 className="font-semibold">{member.name}</h3>
-                            {member.role && <Badge variant="secondary" className="text-xs mt-0.5">{member.role}</Badge>}
-                          </div>
-                        </div>
-                        <span className={cn("text-xs font-medium", rel.color)}>{rel.label}</span>
-                      </div>
-
-                      {member.skills && member.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {member.skills.map((skill) => (
-                            <Badge key={skill} variant="outline" className="text-xs">{skill}</Badge>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground flex items-center gap-1">
-                          <Phone className="h-3.5 w-3.5" /> {member.phone || "—"}
-                        </span>
-                        <span className="font-medium">{member.hourly_rate} €/h</span>
-                      </div>
-
-                      {hasConflict && (
-                        <div className="flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 rounded-lg px-2 py-1.5">
-                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                          <span>Conflit — déjà confirmé pour "{conflict.event_name}"</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
         </div>
 
-        {/* Right: Roles & actions */}
-        {selectedEvent && (
-          <div className="lg:col-span-2 space-y-4">
-            {/* Selection summary */}
-            <Card className="rounded-2xl">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Sélection</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {selectedMembers.length} employé{selectedMembers.length > 1 ? "s" : ""} sélectionné{selectedMembers.length > 1 ? "s" : ""}
-                </p>
-                {selectedMembers.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {selectedMembers.map((id) => {
-                      const m = members?.find((m) => m.id === id);
-                      return m ? (
-                        <Badge key={id} className="gap-1 text-xs">
-                          {m.name}
-                          <X className="h-3 w-3 cursor-pointer" onClick={() => toggleMember(id)} />
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-                <Button
-                  variant="accent"
-                  className="w-full gap-2"
-                  onClick={handleGenerateWhatsApp}
-                  disabled={selectedMembers.length === 0 || createSession.isPending}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  {createSession.isPending ? "Génération..." : "Générer le message WhatsApp"}
-                </Button>
-              </CardContent>
-            </Card>
+        {selectedEventData && (
+          <>
+            {/* Event Header */}
+            <EventHeader event={selectedEventData} quote={eventQuote} />
 
-            {/* Tracking */}
-            {confirmationRequests && confirmationRequests.length > 0 && (
-              <Card className="rounded-2xl">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Suivi des confirmations</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Progress bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>✅ {confirmed.length} confirmé{confirmed.length > 1 ? "s" : ""}</span>
-                      <span>⏳ {pending.length} en attente</span>
-                      <span>❌ {declined.length} décliné{declined.length > 1 ? "s" : ""}</span>
-                    </div>
-                    <Progress value={confirmationRequests.length > 0 ? ((confirmed.length + declined.length) / confirmationRequests.length) * 100 : 0} />
-                  </div>
+            {/* HR Gauges */}
+            <HrGauges needs={staffNeeds} confirmed={confirmedCounts as any} />
 
-                  {confirmed.length === confirmationRequests.filter(r => r.team_member_id).length && confirmed.length > 0 && (
-                    <div className="bg-[hsl(var(--status-confirmed))]/10 text-[hsl(var(--status-confirmed))] rounded-lg px-3 py-2 text-sm font-medium text-center">
-                      🎉 Équipe complète !
-                    </div>
-                  )}
+            {/* Main content: Candidates + Confirmed Team */}
+            <div className="grid lg:grid-cols-4 gap-5">
+              {/* Candidates */}
+              <div className="lg:col-span-3 space-y-4">
+                <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2" style={{ fontFamily: "Syne, sans-serif" }}>
+                  <Users className="h-5 w-5 text-emerald-400" /> Candidats par poste
+                </h2>
+                <CandidateList
+                  categories={categories}
+                  stats={teamStats || {}}
+                  onConfirm={handleConfirm}
+                  onRefuse={handleRefuse}
+                  onWhatsApp={(member, role) => handleWhatsApp(member, role)}
+                  onAdd={handleAddStaff}
+                />
 
-                  {/* Individual statuses */}
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {confirmationRequests.map((req) => {
-                      const name = (req.team_members as any)?.name || `${req.respondent_firstname || ""} ${req.respondent_lastname || ""}`.trim() || "Inconnu";
-                      const role = (req.team_members as any)?.role;
-                      return (
-                        <div key={req.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                          <div className="flex items-center gap-2">
-                            {!req.team_member_id && <User className="h-3.5 w-3.5 text-[hsl(var(--status-quote-sent))]" />}
-                            <div>
-                              <p className="text-sm font-medium">{name}</p>
-                              {role && <p className="text-xs text-muted-foreground">{role}</p>}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {req.status === "pending" && (
-                              <>
-                                <Badge variant="secondary" className="text-xs gap-1"><Clock className="h-3 w-3" /> En attente</Badge>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateStatus.mutate({ id: req.id, status: "confirmed" })}>
-                                  <CheckCircle className="h-3.5 w-3.5 text-[hsl(var(--status-confirmed))]" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateStatus.mutate({ id: req.id, status: "declined" })}>
-                                  <XCircle className="h-3.5 w-3.5 text-destructive" />
-                                </Button>
-                              </>
-                            )}
-                            {req.status === "confirmed" && (
-                              <Badge className="text-xs gap-1 bg-[hsl(var(--status-confirmed))] text-white"><CheckCircle className="h-3 w-3" /> Confirmé</Badge>
-                            )}
-                            {req.status === "declined" && (
-                              <Badge variant="destructive" className="text-xs gap-1"><XCircle className="h-3 w-3" /> Décliné</Badge>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                {/* Replacement Suggestions */}
+                <ReplacementSuggestions
+                  refusedOrExpired={refusedStaff}
+                  allMembers={members || []}
+                  assignedIds={assignedIds}
+                  stats={teamStats || {}}
+                  onAdd={handleAddStaff}
+                />
+              </div>
 
-                  {/* Relance section */}
-                  {pending.length > 0 && (
-                    <div className="pt-2 border-t space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                        <RefreshCw className="h-3 w-3" /> À relancer ({pending.length})
-                      </p>
-                      {pending.map((req) => {
-                        const name = (req.team_members as any)?.name || "Inconnu";
-                        const hoursAgo = Math.round((Date.now() - new Date(req.created_at).getTime()) / 3600000);
-                        const latestSession = sessions?.[0];
-                        const relanceMsg = `Bonjour ${name.split(" ")[0]} 👋 Tu as reçu notre message pour ${selectedEventData?.name} ? N'oublie pas de confirmer ta dispo ici : ${appUrl}/confirm/${latestSession?.id}`;
+              {/* Sidebar */}
+              <div className="space-y-4">
+                <ConfirmedTeam
+                  categories={confirmedTeamCategories}
+                  totalConfirmed={totalConfirmed}
+                  totalNeeded={totalNeeded}
+                />
+                <FollowUpPanel
+                  pendingStaff={pendingStaff}
+                  event={selectedEventData}
+                  onWhatsApp={(member) => handleWhatsApp(member, "")}
+                />
+              </div>
+            </div>
+          </>
+        )}
 
-                        return (
-                          <div key={req.id} className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">{name} · {hoursAgo}h</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1 text-xs h-7"
-                              onClick={() => { navigator.clipboard.writeText(relanceMsg); toast.success("Message de relance copié !"); }}
-                            >
-                              <Copy className="h-3 w-3" /> Relancer
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+        {!selectedEvent && members && members.length > 0 && (
+          <div className="rounded-xl border border-[#2D3148] bg-[#1A1D27] p-8 text-center">
+            <Users className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-400 text-sm">Sélectionnez un événement pour gérer les affectations RH.</p>
+            <p className="text-slate-500 text-xs mt-1">{members.length} employé{members.length > 1 ? "s" : ""} dans votre équipe</p>
           </div>
         )}
       </div>
 
-      {/* WhatsApp Modal */}
-      {showWhatsAppModal && (
-        <div className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-4" onClick={() => setShowWhatsAppModal(false)}>
-          <Card className="w-full max-w-lg animate-fade-in rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Message WhatsApp</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setShowWhatsAppModal(false)}><X className="h-4 w-4" /></Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-muted/50 rounded-xl p-4 text-sm whitespace-pre-wrap font-mono">
-                {whatsappMessage}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="accent" className="flex-1 gap-2" onClick={copyMessage}>
-                  <Copy className="h-4 w-4" /> Copier le message
-                </Button>
-                <Button variant="outline" className="flex-1 gap-2" onClick={openWhatsApp}>
-                  <ExternalLink className="h-4 w-4" /> Ouvrir WhatsApp
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Lien de confirmation valide 7 jours : <span className="font-mono text-primary break-all">{confirmLink}</span>
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* WhatsApp Editor Modal */}
+      <WhatsAppEditorModal
+        open={!!whatsAppTarget}
+        onClose={() => setWhatsAppTarget(null)}
+        member={whatsAppTarget?.member}
+        event={selectedEventData}
+        role={whatsAppTarget?.role || ""}
+      />
 
       {/* Add Member Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
-          <Card className="w-full max-w-md animate-fade-in rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Nouvel employé</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)}><X className="h-4 w-4" /></Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div><Label>Prénom + Nom *</Label><Input value={newMember.name} onChange={(e) => setNewMember({ ...newMember, name: e.target.value })} placeholder="Jean Dupont" className="mt-1" /></div>
-              <div><Label>Téléphone</Label><Input value={newMember.phone} onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })} placeholder="06 XX XX XX XX" className="mt-1" /></div>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
+          <div className="w-full max-w-md bg-[#1A1D27] border border-[#2D3148] rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-[#2D3148]">
+              <h3 className="font-semibold text-slate-100">Nouvel employé</h3>
+              <Button variant="ghost" size="icon" className="text-slate-400" onClick={() => setShowAddModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4 space-y-4">
               <div>
-                <Label>Rôle principal</Label>
-                <select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm mt-1" value={newMember.role} onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}>
+                <Label className="text-slate-300 text-sm">Prénom + Nom *</Label>
+                <Input value={newMember.name} onChange={(e) => setNewMember({ ...newMember, name: e.target.value })} placeholder="Jean Dupont" className="mt-1 bg-[#0F1117] border-[#2D3148] text-slate-200" />
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm">Téléphone</Label>
+                <Input value={newMember.phone} onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })} placeholder="06 XX XX XX XX" className="mt-1 bg-[#0F1117] border-[#2D3148] text-slate-200" />
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm">Rôle</Label>
+                <select className="w-full h-10 px-3 rounded-lg border border-[#2D3148] bg-[#0F1117] text-slate-200 text-sm mt-1" value={newMember.role} onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}>
                   <option value="">— Choisir —</option>
-                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
-              <div><Label>Taux horaire (€)</Label><Input type="number" value={newMember.hourly_rate} onChange={(e) => setNewMember({ ...newMember, hourly_rate: Number(e.target.value) })} className="mt-1" /></div>
-              <div><Label>Compétences (virgules)</Label><Input value={newMember.skills} onChange={(e) => setNewMember({ ...newMember, skills: e.target.value })} placeholder="service, cuisine, bar…" className="mt-1" /></div>
-              <Button variant="accent" className="w-full" onClick={handleAddMember} disabled={createMember.isPending}>{createMember.isPending ? "Ajout..." : "Ajouter"}</Button>
-            </CardContent>
-          </Card>
+              <div>
+                <Label className="text-slate-300 text-sm">Taux horaire (€)</Label>
+                <Input type="number" value={newMember.hourly_rate} onChange={(e) => setNewMember({ ...newMember, hourly_rate: Number(e.target.value) })} className="mt-1 bg-[#0F1117] border-[#2D3148] text-slate-200" />
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm">Compétences (virgules)</Label>
+                <Input value={newMember.skills} onChange={(e) => setNewMember({ ...newMember, skills: e.target.value })} placeholder="service, cuisine, bar…" className="mt-1 bg-[#0F1117] border-[#2D3148] text-slate-200" />
+              </div>
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleAddMember} disabled={createMember.isPending}>
+                {createMember.isPending ? "Ajout..." : "Ajouter"}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default Team;
+export default Announcements;
