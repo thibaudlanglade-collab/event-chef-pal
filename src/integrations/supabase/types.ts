@@ -365,7 +365,9 @@ export type Database = {
           created_at: string
           event_id: string
           id: string
+          responded_at: string | null
           role_assigned: string | null
+          sent_at: string | null
           team_member_id: string
         }
         Insert: {
@@ -373,7 +375,9 @@ export type Database = {
           created_at?: string
           event_id: string
           id?: string
+          responded_at?: string | null
           role_assigned?: string | null
+          sent_at?: string | null
           team_member_id: string
         }
         Update: {
@@ -381,7 +385,9 @@ export type Database = {
           created_at?: string
           event_id?: string
           id?: string
+          responded_at?: string | null
           role_assigned?: string | null
+          sent_at?: string | null
           team_member_id?: string
         }
         Relationships: [
@@ -835,6 +841,10 @@ export type Database = {
           id: string
           items: Json
           notes: string | null
+          staff_bartenders: number | null
+          staff_chefs: number | null
+          staff_head_waiter: number | null
+          staff_servers: number | null
           status: string
           subtotal: number | null
           total_ttc: number | null
@@ -849,6 +859,10 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          staff_bartenders?: number | null
+          staff_chefs?: number | null
+          staff_head_waiter?: number | null
+          staff_servers?: number | null
           status?: string
           subtotal?: number | null
           total_ttc?: number | null
@@ -863,6 +877,10 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          staff_bartenders?: number | null
+          staff_chefs?: number | null
+          staff_head_waiter?: number | null
+          staff_servers?: number | null
           status?: string
           subtotal?: number | null
           total_ttc?: number | null
@@ -886,6 +904,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rh_settings: {
+        Row: {
+          auto_replace_after_hours: number
+          coeff_anniversaire: number
+          coeff_corporate: number
+          coeff_mariage: number
+          created_at: string
+          guests_per_bartender: number
+          guests_per_chef: number
+          guests_per_server: number
+          head_waiter_enabled: boolean
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_replace_after_hours?: number
+          coeff_anniversaire?: number
+          coeff_corporate?: number
+          coeff_mariage?: number
+          created_at?: string
+          guests_per_bartender?: number
+          guests_per_chef?: number
+          guests_per_server?: number
+          head_waiter_enabled?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_replace_after_hours?: number
+          coeff_anniversaire?: number
+          coeff_corporate?: number
+          coeff_mariage?: number
+          created_at?: string
+          guests_per_bartender?: number
+          guests_per_chef?: number
+          guests_per_server?: number
+          head_waiter_enabled?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       scheduled_followups: {
         Row: {
@@ -1204,6 +1267,36 @@ export type Database = {
           is_active?: boolean | null
           user_id?: string
           webhook_url?: string
+        }
+        Relationships: []
+      }
+      whatsapp_templates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
