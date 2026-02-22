@@ -7,9 +7,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, XCircle, CalendarDays, MapPin, Clock } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logoText from "@/assets/logo-text.png";
 
 type ConfirmState = "form" | "confirmed" | "declined" | "expired" | "already_responded";
+
+/* Grain texture SVG as inline background */
+const grainStyle: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
+};
+
+const ConfirmStatusCard = ({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) => (
+  <div className="min-h-screen flex items-center justify-center bg-background p-4" style={grainStyle}>
+    <Card className="w-full max-w-md text-center rounded-2xl border-border/50 shadow-lg animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+      <CardContent className="p-10 space-y-4">
+        {icon}
+        <h2 className="text-xl font-bold text-foreground">{title}</h2>
+        <p className="text-muted-foreground">{subtitle}</p>
+      </CardContent>
+    </Card>
+  </div>
+);
 
 const Confirm = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -23,40 +40,19 @@ const Confirm = () => {
 
   if (loadingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background" style={grainStyle}>
         <div className="animate-pulse text-muted-foreground">Chargement...</div>
       </div>
     );
   }
 
   if (!session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md text-center rounded-2xl">
-          <CardContent className="p-8 space-y-4">
-            <XCircle className="h-12 w-12 mx-auto text-destructive" />
-            <h2 className="text-xl font-bold">Lien invalide</h2>
-            <p className="text-muted-foreground">Ce lien de confirmation n'existe pas ou a été supprimé.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ConfirmStatusCard icon={<XCircle className="h-12 w-12 mx-auto text-destructive" />} title="Lien invalide" subtitle="Ce lien de confirmation n'existe pas ou a été supprimé." />;
   }
 
-  // Check expiry
   const isExpired = new Date(session.expires_at) < new Date();
   if (isExpired && state === "form") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md text-center rounded-2xl">
-          <CardContent className="p-8 space-y-4">
-            <Clock className="h-12 w-12 mx-auto text-muted-foreground" />
-            <h2 className="text-xl font-bold">Lien expiré</h2>
-            <p className="text-muted-foreground">Ce lien n'est plus valide. Contactez directement l'organisateur.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ConfirmStatusCard icon={<Clock className="h-12 w-12 mx-auto text-muted-foreground" />} title="Lien expiré" subtitle="Ce lien n'est plus valide. Contactez directement l'organisateur." />;
   }
 
   const event = session.events as any;
@@ -64,105 +60,45 @@ const Confirm = () => {
   const handleRespond = async (response: "confirmed" | "declined") => {
     if (!firstname.trim() || !lastname.trim()) return;
     setSubmitting(true);
-
     try {
-      // Fuzzy match: find a request with matching name
       const normalizedFirst = firstname.trim().toLowerCase();
       const normalizedLast = lastname.trim().toLowerCase();
-
       const match = requests?.find((r) => {
         const memberName = (r.team_members as any)?.name?.toLowerCase() || "";
         return memberName.includes(normalizedFirst) || memberName.includes(normalizedLast);
       });
-
       if (match) {
-        // Check if already responded
-        if (match.status !== "pending") {
-          setState("already_responded");
-          return;
-        }
-        // Update existing request
-        await supabase
-          .from("confirmation_requests")
-          .update({ status: response, responded_at: new Date().toISOString(), respondent_firstname: firstname.trim(), respondent_lastname: lastname.trim() })
-          .eq("id", match.id);
+        if (match.status !== "pending") { setState("already_responded"); return; }
+        await supabase.from("confirmation_requests").update({ status: response, responded_at: new Date().toISOString(), respondent_firstname: firstname.trim(), respondent_lastname: lastname.trim() }).eq("id", match.id);
       } else {
-        // Create unidentified request
-        await supabase
-          .from("confirmation_requests")
-          .insert({
-            session_id: sessionId!,
-            team_member_id: null,
-            respondent_firstname: firstname.trim(),
-            respondent_lastname: lastname.trim(),
-            status: response,
-            responded_at: new Date().toISOString(),
-          });
+        await supabase.from("confirmation_requests").insert({ session_id: sessionId!, team_member_id: null, respondent_firstname: firstname.trim(), respondent_lastname: lastname.trim(), status: response, responded_at: new Date().toISOString() });
       }
-
       setState(response === "confirmed" ? "confirmed" : "declined");
-    } catch {
-      // Silently handle
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { /* silently handle */ } finally { setSubmitting(false); }
   };
 
   if (state === "already_responded") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md text-center rounded-2xl">
-          <CardContent className="p-8 space-y-4">
-            <CheckCircle className="h-12 w-12 mx-auto text-[hsl(var(--status-confirmed))]" />
-            <h2 className="text-xl font-bold">Déjà répondu</h2>
-            <p className="text-muted-foreground">Vous avez déjà répondu à cette demande. Merci !</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ConfirmStatusCard icon={<CheckCircle className="h-12 w-12 mx-auto text-[hsl(var(--status-confirmed))]" />} title="Déjà répondu" subtitle="Vous avez déjà répondu à cette demande. Merci !" />;
   }
-
   if (state === "confirmed") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md text-center rounded-2xl">
-          <CardContent className="p-8 space-y-4">
-            <CheckCircle className="h-12 w-12 mx-auto text-[hsl(var(--status-confirmed))]" />
-            <h2 className="text-xl font-bold">Parfait {firstname} !</h2>
-            <p className="text-muted-foreground">L'organisateur a été notifié. À bientôt !</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ConfirmStatusCard icon={<CheckCircle className="h-12 w-12 mx-auto text-[hsl(var(--status-confirmed))]" />} title={`Parfait ${firstname} !`} subtitle="L'organisateur a été notifié. À bientôt !" />;
   }
-
   if (state === "declined") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md text-center rounded-2xl">
-          <CardContent className="p-8 space-y-4">
-            <XCircle className="h-12 w-12 mx-auto text-muted-foreground" />
-            <h2 className="text-xl font-bold">Pas de problème {firstname} !</h2>
-            <p className="text-muted-foreground">Merci d'avoir répondu !</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ConfirmStatusCard icon={<XCircle className="h-12 w-12 mx-auto text-muted-foreground" />} title={`Pas de problème ${firstname} !`} subtitle="Merci d'avoir répondu !" />;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md rounded-2xl">
-        <CardContent className="p-6 space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 justify-center">
-            <img src={logo} alt="CaterPilot" className="h-10 w-10 rounded-xl object-contain" />
-            <span className="text-lg font-bold">CaterPilot</span>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4" style={grainStyle}>
+      <Card className="w-full max-w-md rounded-2xl border-border/50 shadow-lg animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+        <CardContent className="p-8 space-y-6">
+          {/* Header with new logo */}
+          <div className="flex items-center justify-center">
+            <img src={logoText} alt="Sur le Passe" className="h-8 object-contain" />
           </div>
 
           {/* Event info */}
-          <div className="bg-muted/50 rounded-xl p-4 space-y-2">
-            <h2 className="text-lg font-bold text-center">{event?.name}</h2>
+          <div className="bg-muted/50 rounded-xl p-5 space-y-2 border border-border/30">
+            <h2 className="text-lg font-bold text-center text-foreground">{event?.name}</h2>
             <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <CalendarDays className="h-4 w-4" />
