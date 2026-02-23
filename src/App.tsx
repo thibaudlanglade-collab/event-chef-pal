@@ -27,6 +27,7 @@ import Brief from "./pages/Brief";
 import EventDossier from "./pages/EventDossier";
 import NotFound from "./pages/NotFound";
 import Confirm from "./pages/Confirm";
+import Repondre from "./pages/Repondre";
 import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => {
               <Route path="/brief" element={<ProtectedLayout><Brief /></ProtectedLayout>} />
               <Route path="/event-dossier" element={<ProtectedLayout><EventDossier /></ProtectedLayout>} />
               <Route path="/confirm/:sessionId" element={<Confirm />} />
+              <Route path="/repondre/:token" element={<Repondre />} />
               <Route path="/auth/callback/google" element={<ProtectedRoute><GoogleOAuthCallback /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

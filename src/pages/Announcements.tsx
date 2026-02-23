@@ -12,6 +12,7 @@ import {
   useRhSettings, useEventStaffExtended, useAddEventStaff,
   useUpdateEventStaffStatus, useTeamStats, calculateStaffNeeds, useMarkStaffSent,
 } from "@/hooks/useHrModule";
+import { useAnnouncements, useFormResponses } from "@/hooks/useAnnouncements";
 import EventHeader from "@/components/hr/EventHeader";
 import HrGauges from "@/components/hr/HrGauges";
 import CandidateList from "@/components/hr/CandidateList";
@@ -19,12 +20,12 @@ import ConfirmedTeam from "@/components/hr/ConfirmedTeam";
 import WhatsAppEditorModal from "@/components/hr/WhatsAppEditorModal";
 import FollowUpPanel from "@/components/hr/FollowUpPanel";
 import ReplacementSuggestions from "@/components/hr/ReplacementSuggestions";
-import AnnouncementCard from "@/components/hr/AnnouncementCard";
-import StaffingSelector from "@/components/hr/StaffingSelector";
-import BulkMessageModal from "@/components/hr/BulkMessageModal";
+import MonthGrid from "@/components/hr/MonthGrid";
+import MonthEventList from "@/components/hr/MonthEventList";
+import AnnouncementManager from "@/components/hr/AnnouncementManager";
 import { toast } from "sonner";
 
-type ViewMode = "list" | "staffing-select" | "staffing-advanced";
+type ViewMode = "months" | "month-detail" | "announcement" | "staffing-advanced";
 
 const ROLES_MAP = [
   { key: "serveurs", label: "Serveurs", icon: "🍽", matchRoles: ["serveur", "serveuse"] },
@@ -37,11 +38,12 @@ const ROLE_OPTIONS = ["Serveur", "Serveuse", "Chef", "Cuisinier", "Barman", "Ma�
 
 const Announcements = () => {
   const [searchParams] = useSearchParams();
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("months");
   const [selectedEvent, setSelectedEvent] = useState(searchParams.get("event") || "");
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showAddModal, setShowAddModal] = useState(false);
   const [whatsAppTarget, setWhatsAppTarget] = useState<{ member: any; role: string } | null>(null);
-  const [bulkMessageMembers, setBulkMessageMembers] = useState<any[]>([]);
   const [newMember, setNewMember] = useState({ name: "", phone: "", role: "", hourly_rate: 0, skills: "" });
 
   const { data: members, isLoading } = useTeamMembers();
@@ -50,6 +52,7 @@ const Announcements = () => {
   const { data: rhSettings } = useRhSettings();
   const { data: eventStaff } = useEventStaffExtended(selectedEvent || undefined);
   const { data: teamStats } = useTeamStats();
+  const { data: announcements } = useAnnouncements();
   const addStaff = useAddEventStaff();
   const updateStatus = useUpdateEventStaffStatus();
   const markSent = useMarkStaffSent();
@@ -58,10 +61,11 @@ const Announcements = () => {
   const selectedEventData = events?.find((e) => e.id === selectedEvent);
   const eventQuote = quotes?.find((q: any) => q.event_id === selectedEvent);
 
-  // Events with active status for the list view
-  const activeEvents = events?.filter((e) =>
-    ["confirmed", "appointment", "in_progress", "prospect", "quote_sent"].includes(e.status)
-  ) || [];
+  // Build form responses map
+  const formResponsesByAnnouncement = useMemo(() => {
+    // We'll load these per-announcement in the manager, but for the list we provide empty
+    return {} as Record<string, any[]>;
+  }, []);
 
   // Calculate staff needs
   const staffNeeds = useMemo(() => {
@@ -82,7 +86,6 @@ const Announcements = () => {
     return grouped;
   }, [eventStaff]);
 
-  // Count confirmed per role
   const confirmedCounts = useMemo(() => {
     const counts: Record<string, number> = { serveurs: 0, chefs: 0, barmans: 0, maitre_hotel: 0 };
     Object.entries(staffByRole).forEach(([key, staff]) => {
@@ -91,7 +94,6 @@ const Announcements = () => {
     return counts;
   }, [staffByRole]);
 
-  // Members grouped by role for candidate list
   const membersByRole = useMemo(() => {
     if (!members) return {};
     const grouped: Record<string, any[]> = { serveurs: [], chefs: [], barmans: [], maitre_hotel: [] };
@@ -123,11 +125,6 @@ const Announcements = () => {
   const refusedStaff = eventStaff?.filter((s: any) => s.confirmation_status === "refused" || s.confirmation_status === "declined") || [];
   const assignedIds = eventStaff?.map((s: any) => s.team_member_id) || [];
 
-  const handleManageStaffing = (eventId: string) => {
-    setSelectedEvent(eventId);
-    setViewMode("staffing-select");
-  };
-
   const handleAddStaff = (memberId: string, role: string) => {
     if (!selectedEvent) return;
     const roleLabel = ROLES_MAP.find((r) => r.key === role)?.matchRoles[0] || role;
@@ -151,89 +148,71 @@ const Announcements = () => {
     }, { onSuccess: () => { setShowAddModal(false); setNewMember({ name: "", phone: "", role: "", hourly_rate: 0, skills: "" }); } });
   };
 
+  const previewUrl = window.location.origin;
+
   if (isLoading) return <div className="p-8"><Skeleton className="h-96 w-full" /></div>;
 
   // ═══════════════════════════════════════════════════
-  // VIEW: LIST — New announcement cards (Step 1)
+  // VIEW: MONTHS — 12-month grid
   // ═══════════════════════════════════════════════════
-  if (viewMode === "list") {
+  if (viewMode === "months") {
     return (
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Syne, sans-serif" }}>
-              Annonces RH
-            </h1>
-            <p className="text-muted-foreground text-sm">Gérez le staffing de vos événements.</p>
-          </div>
-          <Button className="gap-2" onClick={() => setShowAddModal(true)}>
-            <Plus className="h-4 w-4" /> Ajouter un employé
-          </Button>
-        </div>
-
-        {activeEvents.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Megaphone className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">Aucun événement actif pour le moment.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {activeEvents.map((ev) => {
-              const quote = quotes?.find((q: any) => q.event_id === ev.id);
-              return (
-                <AnnouncementCard
-                  key={ev.id}
-                  event={ev}
-                  quote={quote}
-                  onManageStaffing={handleManageStaffing}
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {/* Add Member Modal — reused across views */}
+        <MonthGrid
+          events={events || []}
+          year={selectedYear}
+          onSelectMonth={(m) => { setSelectedMonth(m); setViewMode("month-detail"); }}
+          onChangeYear={setSelectedYear}
+        />
         {showAddModal && renderAddModal()}
       </div>
     );
   }
 
   // ═══════════════════════════════════════════════════
-  // VIEW: STAFFING-SELECT — Employee selection (Step 2)
+  // VIEW: MONTH-DETAIL — Events in selected month
   // ═══════════════════════════════════════════════════
-  if (viewMode === "staffing-select" && selectedEventData) {
+  if (viewMode === "month-detail" && selectedMonth !== null) {
+    return (
+      <div className="space-y-6">
+        <MonthEventList
+          events={events || []}
+          month={selectedMonth}
+          year={selectedYear}
+          announcements={announcements || []}
+          formResponsesByAnnouncement={formResponsesByAnnouncement}
+          onBack={() => setViewMode("months")}
+          onSelectEvent={(eventId) => { setSelectedEvent(eventId); setViewMode("announcement"); }}
+        />
+        {showAddModal && renderAddModal()}
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════
+  // VIEW: ANNOUNCEMENT — Creation/tracking per event
+  // ═══════════════════════════════════════════════════
+  if (viewMode === "announcement" && selectedEventData) {
     return (
       <div>
-        <StaffingSelector
+        <AnnouncementManager
           event={selectedEventData}
           quote={eventQuote}
-          onBack={() => setViewMode("list")}
-          onSendMessage={(selected) => setBulkMessageMembers(selected)}
+          onBack={() => setViewMode("month-detail")}
           onOpenAdvanced={() => setViewMode("staffing-advanced")}
+          previewUrl={previewUrl}
         />
-
-        {/* Bulk Message Modal (Step 3) */}
-        <BulkMessageModal
-          open={bulkMessageMembers.length > 0}
-          onClose={() => setBulkMessageMembers([])}
-          members={bulkMessageMembers}
-          event={selectedEventData}
-        />
-
         {showAddModal && renderAddModal()}
       </div>
     );
   }
 
   // ═══════════════════════════════════════════════════
-  // VIEW: STAFFING-ADVANCED — Existing staffing board (Step 5 — UNTOUCHED)
+  // VIEW: STAFFING-ADVANCED — Existing staffing board (UNTOUCHED)
   // ═══════════════════════════════════════════════════
   return (
     <div className="min-h-screen bg-[#0F1117] -m-4 lg:-m-8 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-5">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-100" style={{ fontFamily: "Syne, sans-serif" }}>
@@ -242,8 +221,8 @@ const Announcements = () => {
             <p className="text-slate-400 text-sm">Pilotez vos équipes événementielles en temps réel.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="border-[#2D3148] text-slate-300 hover:bg-[#22263A]" onClick={() => setViewMode("list")}>
-              ← Retour aux annonces
+            <Button variant="outline" className="border-[#2D3148] text-slate-300 hover:bg-[#22263A]" onClick={() => setViewMode("announcement")}>
+              ← Retour à l'annonce
             </Button>
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2" onClick={() => setShowAddModal(true)}>
               <Plus className="h-4 w-4" /> Ajouter un employé
@@ -251,7 +230,6 @@ const Announcements = () => {
           </div>
         </div>
 
-        {/* Event selector */}
         <div className="rounded-xl border border-[#2D3148] bg-[#1A1D27] p-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <Label className="text-sm font-medium text-slate-300 shrink-0">Événement :</Label>
@@ -261,7 +239,7 @@ const Announcements = () => {
               onChange={(e) => setSelectedEvent(e.target.value)}
             >
               <option value="">— Choisir un événement —</option>
-              {activeEvents.map((ev) => (
+              {(events || []).map((ev) => (
                 <option key={ev.id} value={ev.id}>
                   {ev.name} ({new Date(ev.date).toLocaleDateString("fr-FR")}) — {ev.guest_count || 0} convives
                 </option>
@@ -304,7 +282,6 @@ const Announcements = () => {
     </div>
   );
 
-  // ─── Shared Add Member Modal ───
   function renderAddModal() {
     return (
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
