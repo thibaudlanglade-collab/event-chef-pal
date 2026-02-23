@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          message_content: string
+          sent_at: string | null
+          staff_needs: Json
+          status: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          message_content?: string
+          sent_at?: string | null
+          staff_needs?: Json
+          status?: string
+          token?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          message_content?: string
+          sent_at?: string | null
+          staff_needs?: Json
+          status?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_items: {
         Row: {
           category: string
@@ -497,6 +544,44 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_responses: {
+        Row: {
+          announcement_id: string
+          available: boolean
+          first_name: string
+          id: string
+          phone: string | null
+          role: string
+          submitted_at: string
+        }
+        Insert: {
+          announcement_id: string
+          available?: boolean
+          first_name: string
+          id?: string
+          phone?: string | null
+          role: string
+          submitted_at?: string
+        }
+        Update: {
+          announcement_id?: string
+          available?: boolean
+          first_name?: string
+          id?: string
+          phone?: string | null
+          role?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_responses_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
             referencedColumns: ["id"]
           },
         ]
