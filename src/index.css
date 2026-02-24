@@ -54,6 +54,10 @@
     --status-completed: 262 52% 47%;
     --status-cancelled: 0 84% 60%;
 
+    /* AI accent */
+    --ai-accent: 270 60% 55%;
+    --ai-accent-foreground: 270 80% 98%;
+
     /* Gradient */
     --gradient-primary: linear-gradient(135deg, hsl(30 15% 15%), hsl(30 10% 25%));
   }

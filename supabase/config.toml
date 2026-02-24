@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.check-pipeline-inactivity]
 verify_jwt = false
+
+[functions.ai-template-fill]
+verify_jwt = false

@@ -298,6 +298,39 @@ export type Database = {
           },
         ]
       }
+      custom_templates: {
+        Row: {
+          created_at: string
+          id: string
+          source_filename: string | null
+          structure: Json
+          template_type: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_filename?: string | null
+          structure?: Json
+          template_type: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_filename?: string | null
+          structure?: Json
+          template_type?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       email_settings: {
         Row: {
           auto_triage_enabled: boolean | null
