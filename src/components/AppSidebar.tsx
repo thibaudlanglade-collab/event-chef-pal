@@ -14,7 +14,6 @@ import {
   FileEdit,
   ChevronDown,
   FolderOpen,
-  History,
   ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
@@ -33,8 +32,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
       { title: "Calendrier", href: "/calendar", icon: CalendarDays },
-      { title: "📧 Boîte mail IA", href: "/mail", icon: Mail },
-      { title: "Historique emails", href: "/emails/history", icon: History },
+      { title: "Emails IA", href: "/mail", icon: Mail },
       { title: "Devis express", href: "/quotes", icon: FileText },
       { title: "CRM", href: "/crm", icon: ContactRound },
       { title: "Dossier événement", href: "/event-dossier", icon: FolderOpen },
@@ -44,7 +42,7 @@ const navGroups: NavGroup[] = [
     label: "Prépa équipe",
     items: [
       { title: "Mes équipes", href: "/my-teams", icon: Users },
-      { title: "Annonces", href: "/announcements", icon: Megaphone },
+      { title: "Planning équipe", href: "/announcements", icon: Megaphone },
     ],
   },
   {

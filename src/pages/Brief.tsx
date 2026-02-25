@@ -90,7 +90,7 @@ const Brief = () => {
     if (ev) {
       const parts: string[] = [];
       if (ev.notes) parts.push(ev.notes);
-      setVigilance(parts.join("\n") || "Aucune note logistique pour cet événement.");
+      setVigilance(parts.join("\n") || "Aucune note logistique renseignée — modifier l'événement pour ajouter ces informations.");
 
       // Fetch quote, staff, client for AI fill
       supabase.from("quotes").select("*").eq("event_id", selectedEventId).order("created_at", { ascending: false }).limit(1)
@@ -184,7 +184,7 @@ const Brief = () => {
       {/* Toolbar – hidden on print */}
       <div className="no-print space-y-4">
         <h1 className="text-2xl font-bold">Brief Maître d'Hôtel</h1>
-        <p className="text-muted-foreground text-sm">Créez une fiche terrain pour votre maître d'hôtel : allergies en jaune fluo, chronologie du service et checklist logistique. Tout est modifiable avant impression.</p>
+        <p className="text-muted-foreground text-sm">Créez une fiche terrain pour votre maître d'hôtel : informations prioritaires, chronologie du service et checklist logistique. Tout est modifiable avant impression.</p>
 
         <div className="flex flex-wrap gap-3 items-center">
           <Select value={selectedEventId} onValueChange={setSelectedEventId}>
@@ -246,16 +246,20 @@ const Brief = () => {
 
             <p className="text-2xl font-black mb-6 uppercase">{selectedEvent.name}</p>
 
-            {/* ===== VIGILANCE SECTION – YELLOW ===== */}
-            <div className="mb-8 p-6 shadow-lg" style={{ background: "#ccff00", transform: "rotate(-0.5deg)" }}>
-              <h2 className="flex items-center gap-2 font-black uppercase text-sm mb-3 italic">
-                <AlertTriangle className="h-5 w-5" fill="black" stroke="black" />
-                ⚠ INFORMATIONS PRIORITAIRES — ALLERGIES & LOGISTIQUE
+            {/* ===== VIGILANCE SECTION ===== */}
+            <div className="mb-8 p-5 rounded-lg" style={{ background: "#fff8f0", borderLeft: "4px solid #f97316" }}>
+              <h2 className="flex items-center gap-2 uppercase mb-3" style={{ color: "#9a3412", fontSize: "13px", fontWeight: 700 }}>
+                <AlertTriangle className="h-5 w-5" style={{ color: "#f97316" }} />
+                INFORMATIONS PRIORITAIRES — ALLERGIES & LOGISTIQUE
               </h2>
               {isEditing ? (
-                <Textarea className="w-full bg-transparent border-2 border-black font-bold text-xl leading-tight min-h-[120px] text-black" value={vigilance} onChange={(e) => setVigilance(e.target.value)} />
+                <Textarea className="w-full bg-white border border-gray-300 min-h-[120px]" style={{ color: "#374151", fontSize: "13px" }} value={vigilance} onChange={(e) => setVigilance(e.target.value)} />
               ) : (
-                <p className="text-xl font-bold leading-tight uppercase whitespace-pre-line italic">{vigilance}</p>
+                <p className="whitespace-pre-line" style={{ color: "#374151", fontSize: "13px" }}>
+                  {vigilance === "Aucune note logistique pour cet événement." 
+                    ? "Aucune note logistique renseignée — modifier l'événement pour ajouter ces informations." 
+                    : vigilance}
+                </p>
               )}
             </div>
 

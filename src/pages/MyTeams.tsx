@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Phone, Plus, Search, User, X } from "lucide-react";
+import { Phone, Plus, Search, User, Users, X } from "lucide-react";
 import { useTeamMembers, useCreateTeamMember } from "@/hooks/useSupabase";
 import { useTeamReliability } from "@/hooks/useConfirmations";
 import { cn } from "@/lib/utils";
@@ -84,7 +84,16 @@ const MyTeams = () => {
       </div>
 
       {/* Members list */}
-      {filteredMembers.length === 0 ? (
+      {filteredMembers.length === 0 && members && members.length === 0 ? (
+        <Card className="p-8 text-center rounded-2xl space-y-3">
+          <Users className="h-12 w-12 mx-auto text-muted-foreground/40" />
+          <p className="font-semibold">Votre équipe est vide</p>
+          <p className="text-sm text-muted-foreground">Ajoutez vos serveurs, chefs et collaborateurs pour les assigner à vos événements.</p>
+          <Button variant="accent" className="gap-2" onClick={() => setShowAddModal(true)}>
+            <Plus className="h-4 w-4" /> Ajouter mon premier employé
+          </Button>
+        </Card>
+      ) : filteredMembers.length === 0 ? (
         <Card className="p-8 text-center rounded-2xl">
           <p className="text-muted-foreground">Aucun employé trouvé.</p>
         </Card>

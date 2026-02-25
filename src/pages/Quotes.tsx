@@ -86,6 +86,7 @@ const Quotes = () => {
   const removeItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
 
   const addCatalogItems = (catalogItems: CatalogItem[]) => {
+    const validTvaRates = [0, 5.5, 10, 20];
     const newItems: QuoteItem[] = catalogItems.map((ci) => ({
       id: newId(),
       name: ci.name,
@@ -94,7 +95,7 @@ const Quotes = () => {
       pricingType: ci.pricing_type,
       qty: ci.pricing_type === "per_person" ? (guestCount || 1) : 1,
       unitPrice: ci.sale_price ?? 0,
-      tva: ci.default_tva,
+      tva: validTvaRates.includes(ci.default_tva) ? ci.default_tva : 10,
     }));
     setItems((prev) => [...prev, ...newItems]);
     toast.success(`${catalogItems.length} prestation(s) ajoutée(s)`);
@@ -295,6 +296,7 @@ const Quotes = () => {
                               </td>
                               <td className="py-1.5 px-1">
                                 <select value={item.tva} onChange={(e) => updateItem(item.id, "tva", Number(e.target.value))} className="h-8 w-full rounded border border-input bg-background text-sm text-right px-1">
+                                  <option value={0}>0%</option>
                                   <option value={5.5}>5,5%</option>
                                   <option value={10}>10%</option>
                                   <option value={20}>20%</option>
