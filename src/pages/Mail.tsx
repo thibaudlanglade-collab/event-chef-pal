@@ -4,14 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Mail, Bot, Send, X, AlertTriangle, Trophy, ChevronDown, ChevronUp,
-  Flame, RefreshCcw, UserCheck, Calendar, Users, DollarSign, Sparkles, Info
+  Flame, RefreshCcw, UserCheck, Calendar, Users, DollarSign, Sparkles, Info,
+  CheckCircle, Search, Eye, Inbox
 } from "lucide-react";
-import { useFetchUnreadEmails, useAnalyzeEmail, useSendEmailResponse, useEmailSettings } from "@/hooks/useEmails";
+import { useFetchUnreadEmails, useAnalyzeEmail, useSendEmailResponse, useEmailSettings, useEmailHistory } from "@/hooks/useEmails";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from "@/components/ui/dialog";
@@ -59,9 +63,11 @@ type GroupedEmails = {
 const MailPage = () => {
   const { data: emailData, isLoading, refetch } = useFetchUnreadEmails();
   const { data: emailSettings } = useEmailSettings();
+  const { data: historyEmails, isLoading: historyLoading } = useEmailHistory();
   const analyzeEmail = useAnalyzeEmail();
   const sendResponse = useSendEmailResponse();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
@@ -70,6 +76,11 @@ const MailPage = () => {
   const [localAnalysis, setLocalAnalysis] = useState<Record<string, any>>({});
   const [showBanner, setShowBanner] = useState(() => localStorage.getItem("email_banner_dismissed") !== "true");
   const [postSendModal, setPostSendModal] = useState<any | null>(null);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyCategoryFilter, setHistoryCategoryFilter] = useState<string>("all");
+  const [historyExpandedId, setHistoryExpandedId] = useState<string | null>(null);
+  
+  const activeTab = searchParams.get("tab") === "historique" ? "historique" : "inbox";
 
   const emails = emailData?.emails || [];
   const isConnected = emailData?.connected || false;
@@ -177,21 +188,38 @@ const MailPage = () => {
     return `il y a ${days}j`;
   };
 
+  const filteredHistory = (historyEmails || []).filter((email: any) => {
+    const matchSearch = !historySearch || 
+      email.sender_name?.toLowerCase().includes(historySearch.toLowerCase()) ||
+      email.sender_email?.toLowerCase().includes(historySearch.toLowerCase()) ||
+      email.subject?.toLowerCase().includes(historySearch.toLowerCase());
+    const matchCategory = historyCategoryFilter === "all" || email.category === historyCategoryFilter;
+    return matchSearch && matchCategory;
+  });
+
   if (isLoading) return <div className="p-8"><Skeleton className="h-96 w-full" /></div>;
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">📧 Boîte de réception intelligente</h1>
+          <h1 className="text-2xl font-bold">Emails IA</h1>
           <p className="text-muted-foreground text-sm">
-            Analysez vos emails avec l'IA, obtenez des réponses personnalisées et gérez vos prospects en un clic.
+            Analysez vos emails avec l'IA, obtenez des réponses personnalisées et consultez l'historique.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
           <RefreshCcw className="h-4 w-4" /> Actualiser
         </Button>
       </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "historique" ? { tab: "historique" } : {})}>
+        <TabsList>
+          <TabsTrigger value="inbox" className="gap-2"><Inbox className="h-4 w-4" /> Boîte de réception</TabsTrigger>
+          <TabsTrigger value="historique" className="gap-2"><CheckCircle className="h-4 w-4" /> Historique</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="inbox" className="space-y-4 mt-4">
 
       {/* Welcome banner */}
       {showBanner && (
@@ -289,6 +317,96 @@ const MailPage = () => {
           );
         })}
       </div>
+        </TabsContent>
+
+        <TabsContent value="historique" className="space-y-4 mt-4">
+          {/* History Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Rechercher par nom, email ou objet..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} className="pl-9" />
+            </div>
+            <Select value={historyCategoryFilter} onValueChange={setHistoryCategoryFilter}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="Catégorie" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes</SelectItem>
+                <SelectItem value="new_lead">Nouvelle demande</SelectItem>
+                <SelectItem value="modification">Modification</SelectItem>
+                <SelectItem value="cancellation">Annulation</SelectItem>
+                <SelectItem value="question">Question</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {filteredHistory.length === 0 ? (
+            <Card className="rounded-2xl">
+              <CardContent className="p-8 text-center space-y-3">
+                <Mail className="h-10 w-10 mx-auto text-muted-foreground" />
+                <p className="font-semibold">Aucun email traité pour l'instant</p>
+                <p className="text-sm text-muted-foreground">Connectez votre boîte mail pour que l'IA commence à analyser vos demandes entrantes.</p>
+                <Button variant="outline" onClick={() => navigate("/settings")}>Connecter ma boîte mail →</Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {filteredHistory.map((email: any) => {
+                const isExpanded = historyExpandedId === email.id;
+                const info = email.extracted_info as any;
+                return (
+                  <Card key={email.id} className="rounded-2xl">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <CheckCircle className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-sm">{email.sender_name}</p>
+                              <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", categoryColors[email.category] || "bg-muted text-muted-foreground")}>
+                                {categoryLabels[email.category] || email.category}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{email.subject}</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs text-muted-foreground">
+                            Envoyé le {new Date(email.response_sent_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                          <Button variant="ghost" size="sm" className="mt-1 gap-1 text-xs h-7" onClick={() => setHistoryExpandedId(isExpanded ? null : email.id)}>
+                            {isExpanded ? <X className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                            {isExpanded ? "Fermer" : "Voir la réponse"}
+                          </Button>
+                        </div>
+                      </div>
+                      {info && (
+                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                          {info.guest_count && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{info.guest_count} couverts</span>}
+                          {info.budget && <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />{info.budget}€</span>}
+                          {info.date_period && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{info.date_period}</span>}
+                        </div>
+                      )}
+                      {isExpanded && (
+                        <div className="mt-3 pt-3 border-t space-y-3">
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Email original :</p>
+                            <div className="bg-muted rounded-xl p-3 text-sm whitespace-pre-wrap max-h-40 overflow-y-auto">{email.body}</div>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Réponse envoyée :</p>
+                            <div className="bg-primary/5 border border-primary/15 rounded-xl p-3 text-sm whitespace-pre-wrap">{email.final_response_text || email.suggested_response}</div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Post-send modal for new leads */}
       <Dialog open={!!postSendModal} onOpenChange={() => setPostSendModal(null)}>

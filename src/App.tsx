@@ -18,7 +18,9 @@ import MyTeams from "./pages/MyTeams";
 import Announcements from "./pages/Announcements";
 import Stock from "./pages/Stock";
 import MailPage from "./pages/Mail";
-import EmailHistory from "./pages/EmailHistory";
+import { Navigate } from "react-router-dom";
+
+const MailPageRedirect = () => <Navigate to="/mail?tab=historique" replace />;
 import ChecklistTemplates from "./pages/ChecklistTemplates";
 import SettingsPage from "./pages/Settings";
 import CRM from "./pages/CRM";
@@ -73,7 +75,7 @@ const App = () => {
               <Route path="/announcements" element={<ProtectedLayout><Announcements /></ProtectedLayout>} />
               <Route path="/stock" element={<ProtectedLayout><Stock /></ProtectedLayout>} />
               <Route path="/mail" element={<ProtectedLayout><MailPage /></ProtectedLayout>} />
-              <Route path="/emails/history" element={<ProtectedLayout><EmailHistory /></ProtectedLayout>} />
+              <Route path="/emails/history" element={<ProtectedLayout><MailPageRedirect /></ProtectedLayout>} />
               <Route path="/settings" element={<ProtectedLayout><SettingsPage /></ProtectedLayout>} />
               <Route path="/settings/checklist-templates" element={<ProtectedLayout><ChecklistTemplates /></ProtectedLayout>} />
               <Route path="/crm" element={<ProtectedLayout><CRM /></ProtectedLayout>} />

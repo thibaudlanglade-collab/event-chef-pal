@@ -30,9 +30,12 @@ const MonthGrid = ({ events, year, onSelectMonth, onChangeYear }: MonthGridProps
     <div className="space-y-6">
       {/* Year navigation */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Syne, sans-serif" }}>
-          📅 Annonces — {year}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Syne, sans-serif" }}>
+            📅 Planning équipe — {year}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">Visualisez la répartition de vos événements sur l'année et organisez les disponibilités de votre équipe.</p>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onChangeYear(year - 1)}
