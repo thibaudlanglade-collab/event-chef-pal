@@ -122,7 +122,6 @@ const MyTeams = () => {
                   </div>
                   <div className="text-right text-sm">
                     <p className="font-medium">{member.hourly_rate} €/h</p>
-                    <p className="text-xs text-muted-foreground">Fiabilité: {rel.label}</p>
                   </div>
                 </CardContent>
               </Card>
