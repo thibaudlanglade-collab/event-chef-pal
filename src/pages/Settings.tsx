@@ -8,6 +8,7 @@ import { Settings as SettingsIcon, Webhook, CheckCircle, XCircle, LogOut, Mail, 
 import { useWebhookConfigs, useUpsertWebhook } from "@/hooks/useSupabase";
 import { useOAuthToken, useDeleteOAuthToken, useEmailSettings, useUpdateEmailSettings } from "@/hooks/useEmails";
 import { useAuth } from "@/contexts/AuthContext";
+import { useVersion } from "@/contexts/VersionContext";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -19,13 +20,13 @@ import HrSettings from "@/components/settings/HrSettings";
 import TemplateSettings from "@/components/settings/TemplateSettings";
 
 const webhookFeatures = [
-  { key: "mail_triage", label: "Triage des mails (legacy)", description: "Ancien système via webhook n8n" },
   { key: "whatsapp_team", label: "WhatsApp Équipe", description: "Envoi d'invitations WhatsApp aux membres de l'équipe" },
   { key: "stock_alerts", label: "Alertes Stock", description: "Notification automatique quand un article passe sous le seuil" },
 ];
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
+  const { isDeveloped } = useVersion();
   const { data: webhooks, isLoading } = useWebhookConfigs();
   const upsertWebhook = useUpsertWebhook();
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ const SettingsPage = () => {
 
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [showTriageInfo, setShowTriageInfo] = useState(false);
+  const [showAdvancedWebhooks, setShowAdvancedWebhooks] = useState(false);
 
   useEffect(() => {
     if (webhooks) {
@@ -100,13 +102,17 @@ const SettingsPage = () => {
       <div><h1 className="text-2xl font-bold">Paramètres</h1><p className="text-muted-foreground text-sm">Configurez votre compte, votre catalogue, vos webhooks et vos automatisations.</p></div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="general" className="gap-1.5"><SettingsIcon className="h-3.5 w-3.5" /> Général</TabsTrigger>
-          <TabsTrigger value="company" className="gap-1.5"><Building2 className="h-3.5 w-3.5" /> Entreprise</TabsTrigger>
-          <TabsTrigger value="catalog" className="gap-1.5"><Package className="h-3.5 w-3.5" /> Catalogue</TabsTrigger>
-          <TabsTrigger value="crm" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> CRM</TabsTrigger>
-          <TabsTrigger value="hr" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Gestion RH</TabsTrigger>
+        <TabsList className="mb-4 flex-wrap">
+          <TabsTrigger value="general" className="gap-1.5"><SettingsIcon className="h-3.5 w-3.5" /> Compte</TabsTrigger>
           <TabsTrigger value="templates" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Templates</TabsTrigger>
+          {isDeveloped && (
+            <>
+              <TabsTrigger value="company" className="gap-1.5"><Building2 className="h-3.5 w-3.5" /> Entreprise</TabsTrigger>
+              <TabsTrigger value="catalog" className="gap-1.5"><Package className="h-3.5 w-3.5" /> Catalogue</TabsTrigger>
+              <TabsTrigger value="crm" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> CRM</TabsTrigger>
+              <TabsTrigger value="hr" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Gestion RH</TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         <TabsContent value="company">
@@ -228,35 +234,45 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Webhooks */}
-      <Card className="rounded-2xl">
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Webhook className="h-4 w-4" /> Webhooks & Automatisations</CardTitle></CardHeader>
-        <CardContent className="space-y-6">
-          {webhookFeatures.map((feature) => {
-            const existing = getWebhook(feature.key);
-            return (
-              <div key={feature.key} className="space-y-2 pb-4 border-b last:border-0 last:pb-0">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">{feature.label}</p>
-                    <p className="text-xs text-muted-foreground">{feature.description}</p>
-                  </div>
-                  {existing?.is_active ? (
-                    <span className="flex items-center gap-1 text-xs text-status-confirmed font-medium"><CheckCircle className="h-3.5 w-3.5" /> Actif</span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground"><XCircle className="h-3.5 w-3.5" /> Inactif</span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Input value={urls[feature.key] || ""} onChange={(e) => setUrls({ ...urls, [feature.key]: e.target.value })} placeholder="https://mon-n8n.com/webhook/..." className="flex-1" />
-                  <Button variant="outline" size="sm" onClick={() => testWebhook(feature.key)}>Tester</Button>
-                  <Button variant="accent" size="sm" onClick={() => saveWebhook(feature.key)}>Sauvegarder</Button>
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+      {/* Webhooks — hidden behind toggle */}
+      {isDeveloped && (
+        <>
+          <div className="flex items-center gap-3">
+            <Switch checked={showAdvancedWebhooks} onCheckedChange={setShowAdvancedWebhooks} />
+            <span className="text-sm font-medium text-muted-foreground">Paramètres avancés (webhooks)</span>
+          </div>
+          {showAdvancedWebhooks && (
+            <Card className="rounded-2xl">
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Webhook className="h-4 w-4" /> Webhooks & Automatisations</CardTitle></CardHeader>
+              <CardContent className="space-y-6">
+                {webhookFeatures.map((feature) => {
+                  const existing = getWebhook(feature.key);
+                  return (
+                    <div key={feature.key} className="space-y-2 pb-4 border-b last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold">{feature.label}</p>
+                          <p className="text-xs text-muted-foreground">{feature.description}</p>
+                        </div>
+                        {existing?.is_active ? (
+                          <span className="flex items-center gap-1 text-xs text-status-confirmed font-medium"><CheckCircle className="h-3.5 w-3.5" /> Actif</span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground"><XCircle className="h-3.5 w-3.5" /> Inactif</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input value={urls[feature.key] || ""} onChange={(e) => setUrls({ ...urls, [feature.key]: e.target.value })} placeholder="https://mon-n8n.com/webhook/..." className="flex-1" />
+                        <Button variant="outline" size="sm" onClick={() => testWebhook(feature.key)}>Tester</Button>
+                        <Button variant="accent" size="sm" onClick={() => saveWebhook(feature.key)}>Sauvegarder</Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
         </TabsContent>
       </Tabs>
     </div>

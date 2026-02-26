@@ -9,64 +9,72 @@ import {
   Menu,
   X,
   ContactRound,
-  Megaphone,
   Scale,
-  FileEdit,
   ChevronDown,
-  FolderOpen,
-  ClipboardList,
+  Cog,
+  Layers,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import logoText from "@/assets/logo-text.png";
 import { NotificationBell } from "./NotificationBell";
+import { useVersion } from "@/contexts/VersionContext";
 
-type NavGroup = {
-  label: string;
-  items: { title: string; href: string; icon: any }[];
-};
+type NavItem = { title: string; href: string; icon: any };
+type NavGroup = { label: string; items: NavItem[] };
 
-const navGroups: NavGroup[] = [
+const mvpGroups: NavGroup[] = [
   {
-    label: "Gestion",
+    label: "Principal",
     items: [
       { title: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
-      { title: "Calendrier", href: "/calendar", icon: CalendarDays },
-      { title: "Emails IA", href: "/mail", icon: Mail },
-      { title: "Devis express", href: "/quotes", icon: FileText },
-      { title: "CRM", href: "/crm", icon: ContactRound },
-      { title: "Dossier événement", href: "/event-dossier", icon: FolderOpen },
-    ],
-  },
-  {
-    label: "Prépa équipe",
-    items: [
-      { title: "Mes équipes", href: "/my-teams", icon: Users },
-      { title: "Planning équipe", href: "/announcements", icon: Megaphone },
-    ],
-  },
-  {
-    label: "Organisation",
-    items: [
-      { title: "Comparaison Fournisseurs", href: "/suppliers", icon: Scale },
-      { title: "Brief Maître d'Hôtel", href: "/brief", icon: FileEdit },
-      { title: "Templates checklist", href: "/settings/checklist-templates", icon: ClipboardList },
+      { title: "Événements", href: "/calendar", icon: CalendarDays },
+      { title: "Devis", href: "/quotes", icon: FileText },
+      { title: "Équipe", href: "/my-teams", icon: Users },
     ],
   },
 ];
 
-const bottomItems = [
+const advancedItems: NavItem[] = [
+  { title: "CRM Pipeline", href: "/crm", icon: ContactRound },
+  { title: "Emails IA", href: "/mail", icon: Mail },
+  { title: "Comparaison Fournisseurs", href: "/suppliers", icon: Scale },
+];
+
+const bottomItems: NavItem[] = [
   { title: "Paramètres", href: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Gestion: true, "Prépa équipe": true, Organisation: true });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Principal: true });
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const location = useLocation();
+  const { version, setVersion, isDeveloped } = useVersion();
 
   const toggleGroup = (label: string) => {
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const renderNavItem = (item: NavItem) => {
+    const isActive = location.pathname.startsWith(item.href);
+    return (
+      <NavLink
+        key={item.href}
+        to={item.href}
+        onClick={() => setMobileOpen(false)}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+          isActive
+            ? "bg-white/15 text-white border-l-2 border-primary ml-0"
+            : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/8"
+        )}
+      >
+        <item.icon className="h-5 w-5 shrink-0" />
+        {!collapsed && <span>{item.title}</span>}
+      </NavLink>
+    );
   };
 
   const sidebarContent = (
@@ -80,12 +88,40 @@ export function AppSidebar() {
         )}
       </div>
 
+      {/* Version toggle */}
+      {!collapsed && (
+        <div className="px-3 pt-3">
+          <div className="flex rounded-lg border border-sidebar-border/40 overflow-hidden text-xs">
+            <button
+              onClick={() => setVersion("mvp")}
+              className={cn(
+                "flex-1 py-1.5 px-2 font-semibold transition-colors text-center",
+                version === "mvp"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"
+              )}
+            >
+              MVP
+            </button>
+            <button
+              onClick={() => setVersion("developed")}
+              className={cn(
+                "flex-1 py-1.5 px-2 font-semibold transition-colors text-center",
+                version === "developed"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-sidebar-foreground/50 hover:text-sidebar-foreground/80"
+              )}
+            >
+              Développé
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Nav groups */}
       <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-        {navGroups.map((group) => {
+        {mvpGroups.map((group) => {
           const isOpen = openGroups[group.label] !== false;
-          const hasActive = group.items.some((item) => location.pathname.startsWith(item.href));
-
           return (
             <div key={group.label}>
               {!collapsed && (
@@ -99,52 +135,38 @@ export function AppSidebar() {
               )}
               {(collapsed || isOpen) && (
                 <div className="space-y-0.5 mt-1">
-                  {group.items.map((item) => {
-                    const isActive = location.pathname.startsWith(item.href);
-                    return (
-                      <NavLink
-                        key={item.href}
-                        to={item.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                          isActive
-                            ? "bg-white/15 text-white border-l-2 border-primary ml-0"
-                            : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/8"
-                        )}
-                      >
-                        <item.icon className="h-5 w-5 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    );
-                  })}
+                  {group.items.map(renderNavItem)}
                 </div>
               )}
             </div>
           );
         })}
 
+        {/* Advanced section — only in Developed */}
+        {isDeveloped && (
+          <div>
+            {!collapsed && (
+              <button
+                onClick={() => setAdvancedOpen(!advancedOpen)}
+                className="flex items-center justify-between w-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Cog className="h-3 w-3" /> Avancé ⚙️
+                </span>
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", advancedOpen ? "" : "-rotate-90")} />
+              </button>
+            )}
+            {(collapsed || advancedOpen) && (
+              <div className="space-y-0.5 mt-1">
+                {advancedItems.map(renderNavItem)}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Bottom items (Settings) */}
         <div className="pt-2 border-t border-sidebar-border/30">
-          {bottomItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.href);
-            return (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                  isActive
-                    ? "bg-white/15 text-white border-l-2 border-primary ml-0"
-                    : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/8"
-                )}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.title}</span>}
-              </NavLink>
-            );
-          })}
+          {bottomItems.map(renderNavItem)}
         </div>
       </nav>
 

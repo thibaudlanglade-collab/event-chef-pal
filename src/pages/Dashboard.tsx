@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useEvents, useStockItems, useQuotes, useTeamMembers } from "@/hooks/useSupabase";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useVersion } from "@/contexts/VersionContext";
 import { cn } from "@/lib/utils";
 
 const statusLabels: Record<string, string> = {
@@ -33,6 +34,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile } = useUserProfile();
+  const { isDeveloped } = useVersion();
   const { data: events, isLoading: eventsLoading } = useEvents();
   const { data: stockItems, isLoading: stockLoading } = useStockItems();
   const { data: quotes } = useQuotes();
@@ -120,13 +122,15 @@ const Dashboard = () => {
             {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
-        <Card className="px-4 py-2 flex items-center gap-2 border-primary/20 bg-primary/5 rounded-xl">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          <div>
-            <p className="text-xs text-muted-foreground">Revenu semaine</p>
-            <p className="text-lg font-bold">{weekRevenue.toLocaleString("fr-FR")} €</p>
-          </div>
-        </Card>
+        {isDeveloped && (
+          <Card className="px-4 py-2 flex items-center gap-2 border-primary/20 bg-primary/5 rounded-xl">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            <div>
+              <p className="text-xs text-muted-foreground">Revenu semaine</p>
+              <p className="text-lg font-bold">{weekRevenue.toLocaleString("fr-FR")} €</p>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Onboarding banner */}
@@ -178,11 +182,17 @@ const Dashboard = () => {
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2">
         <Button variant="accent" onClick={() => navigate("/calendar")} className="gap-2">
-          <Plus className="h-4 w-4" /> Nouvel événement
+          <Plus className="h-4 w-4" /> Créer un événement
         </Button>
-        <Button variant="outline" onClick={() => navigate("/quotes")} className="gap-2">
-          <FileText className="h-4 w-4" /> Nouveau devis
-        </Button>
+        {isDeveloped ? (
+          <Button variant="outline" onClick={() => navigate("/quotes")} className="gap-2">
+            <FileText className="h-4 w-4" /> Nouveau devis
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={() => navigate("/announcements")} className="gap-2">
+            <CalendarDays className="h-4 w-4" /> Consulter planning
+          </Button>
+        )}
       </div>
 
       {/* Today's events */}
@@ -223,32 +233,34 @@ const Dashboard = () => {
         )}
       </section>
 
-      {/* This week */}
-      <section>
-        <h2 className="text-lg font-semibold mb-3">Cette semaine</h2>
-        {weekEvents.filter((e) => e.date !== today).length === 0 ? (
-          <Card className="p-6 text-center rounded-2xl"><p className="text-muted-foreground text-sm">Pas d'autre événement cette semaine.</p></Card>
-        ) : (
-          <div className="grid gap-2">
-            {weekEvents.filter((e) => e.date !== today).sort((a, b) => a.date.localeCompare(b.date)).map((event) => (
-              <Card key={event.id} className="hover:shadow-sm transition-shadow cursor-pointer rounded-xl" onClick={() => navigate("/calendar")}>
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-1 h-8 rounded-full shrink-0", `bg-status-${event.status.replace("_", "-")}`)} />
-                    <div>
-                      <p className="font-medium text-sm">{event.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(event.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })} — {event.guest_count} convives
-                      </p>
+      {/* This week — only in developed mode */}
+      {isDeveloped && (
+        <section>
+          <h2 className="text-lg font-semibold mb-3">Cette semaine</h2>
+          {weekEvents.filter((e) => e.date !== today).length === 0 ? (
+            <Card className="p-6 text-center rounded-2xl"><p className="text-muted-foreground text-sm">Pas d'autre événement cette semaine.</p></Card>
+          ) : (
+            <div className="grid gap-2">
+              {weekEvents.filter((e) => e.date !== today).sort((a, b) => a.date.localeCompare(b.date)).map((event) => (
+                <Card key={event.id} className="hover:shadow-sm transition-shadow cursor-pointer rounded-xl" onClick={() => navigate("/calendar")}>
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-1 h-8 rounded-full shrink-0", `bg-status-${event.status.replace("_", "-")}`)} />
+                      <div>
+                        <p className="font-medium text-sm">{event.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(event.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })} — {event.guest_count} convives
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", statusColors[event.status] || "")}>{statusLabels[event.status] || event.status}</span>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+                    <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", statusColors[event.status] || "")}>{statusLabels[event.status] || event.status}</span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Alerts */}
       <section>
